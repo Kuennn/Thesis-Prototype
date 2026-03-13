@@ -1,0 +1,122 @@
+.upload-zone {
+  position: relative;
+  border: 1.5px dashed rgba(26, 26, 24, 0.2);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  padding: 52px 32px;
+  cursor: pointer;
+  transition:
+    border-color var(--transition),
+    background var(--transition),
+    transform var(--transition);
+  outline: none;
+  text-align: center;
+  overflow: hidden;
+}
+
+.upload-zone:hover {
+  border-color: var(--accent-light);
+  background: rgba(82, 183, 136, 0.04);
+}
+
+.upload-zone:focus-visible {
+  box-shadow: 0 0 0 3px var(--accent-glow);
+  border-color: var(--accent);
+}
+
+.upload-zone.compact {
+  padding: 28px 32px;
+}
+
+.upload-zone.dragging {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  transform: scale(1.01);
+}
+
+/* Animated corner brackets */
+.corner {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: var(--accent);
+  border-style: solid;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.upload-zone:hover .corner,
+.upload-zone.dragging .corner {
+  opacity: 1;
+}
+
+.corner.tl { top: 10px; left: 10px; border-width: 2px 0 0 2px; border-radius: 4px 0 0 0; }
+.corner.tr { top: 10px; right: 10px; border-width: 2px 2px 0 0; border-radius: 0 4px 0 0; }
+.corner.bl { bottom: 10px; left: 10px; border-width: 0 0 2px 2px; border-radius: 0 0 0 4px; }
+.corner.br { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; border-radius: 0 0 4px 0; }
+
+/* Hidden input */
+.upload-input {
+  display: none;
+}
+
+/* Content */
+.upload-zone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  pointer-events: none;
+}
+
+.upload-icon,
+.drop-icon {
+  color: var(--accent);
+  display: flex;
+}
+
+.zone-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.zone-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--ink);
+}
+
+.zone-sub {
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+}
+
+.zone-link {
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.zone-drop-hint {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--accent);
+  font-style: italic;
+}
+
+.zone-tips {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 480px) {
+  .zone-tips { display: none; }
+  .upload-zone { padding: 36px 20px; }
+}
