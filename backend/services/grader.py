@@ -22,15 +22,16 @@ def grade_answers(extracted_text: str, questions: list) -> list:
 
     Each result:
         {
-            "question_id":    int,
-            "question_no":    int,
-            "question_type":  str,
-            "extracted_answer": str,   # What OCR found for this question
-            "answer_key":     str,     # Correct answer
-            "score":          float,   # Points awarded
-            "max_score":      float,
-            "feedback":       str,     # Explanation shown to student
-            "is_essay":       bool,    # True = needs AI grading later
+            "question_id":      int,
+            "question_no":      int,
+            "question_type":    str,
+            "extracted_answer": str,
+            "answer_key":       str,
+            "score":            float,
+            "max_score":        float,
+            "feedback":         str,
+            "is_essay":         bool,
+            "essay_details":    dict | None,  # Only for essays
         }
     """
     results = []
@@ -40,6 +41,7 @@ def grade_answers(extracted_text: str, questions: list) -> list:
         q_type = question.question_type
         key    = question.answer_key.strip()
         max_s  = question.max_score
+        essay_details = None
 
         if q_type == QuestionType.multiple_choice:
             extracted, score, feedback = grade_multiple_choice(extracted_text, q_no, key, max_s)
@@ -51,8 +53,14 @@ def grade_answers(extracted_text: str, questions: list) -> list:
             extracted, score, feedback = grade_identification(extracted_text, q_no, key, max_s)
 
         elif q_type == QuestionType.essay:
-            # Essays are skipped — marked for AI grading
-            extracted, score, feedback = grade_essay_placeholder(extracted_text, q_no)
+            extracted, score, feedback, essay_details = grade_essay_with_ai(
+                text          = extracted_text,
+                q_no          = q_no,
+                model_answer  = key,
+                question_text = question.question_text or "",
+                rubric        = question.rubric or "",
+                max_score     = max_s,
+            )
 
         else:
             extracted, score, feedback = ("", 0.0, "Unknown question type.")
@@ -67,6 +75,7 @@ def grade_answers(extracted_text: str, questions: list) -> list:
             "max_score":        max_s,
             "feedback":         feedback,
             "is_essay":         q_type == QuestionType.essay,
+            "essay_details":    essay_details,
         })
 
     return results
@@ -198,22 +207,51 @@ def grade_identification(text: str, q_no: int, answer_key: str, max_score: float
         return (student_answer, 0.0, f"Incorrect ({int(similarity*100)}% match). Expected: {answer_key}")
 
 
-# ─── Essay Placeholder ────────────────────────────────────────────────────────
+# ─── Essay Grader (AI) ────────────────────────────────────────────────────────
 
-def grade_essay_placeholder(text: str, q_no: int):
+def grade_essay_with_ai(
+    text:          str,
+    q_no:          int,
+    model_answer:  str,
+    question_text: str,
+    rubric:        str,
+    max_score:     float,
+):
     """
-    Essays are not graded here — they are flagged for AI grading.
-    We still try to extract the relevant text portion for the AI to use later.
+    Extracts the student's essay answer from OCR text,
+    then sends it to Gemini for rubric-based grading.
+    Returns: (extracted_text, score, feedback, essay_details)
     """
-    # Try to extract text near this question number
-    pattern = rf'\b{q_no}\s*[.):\-]?\s*(.+?)(?=\b{q_no + 1}\s*[.):\-]|\Z)'
-    match   = re.search(pattern, text, re.DOTALL)
+    from services.essay_grader import grade_essay
 
+    # Extract the relevant portion of text for this question
+    pattern   = rf'\b{q_no}\s*[.):\-]?\s*(.+?)(?=\b{q_no + 1}\s*[.):\-]|\Z)'
+    match     = re.search(pattern, text, re.DOTALL)
     extracted = ""
     if match:
-        extracted = match.group(1).strip()[:500]  # Cap at 500 chars
+        extracted = match.group(1).strip()[:1000]  # Cap at 1000 chars for essays
 
-    return (extracted, None, "Pending AI essay grading.")
+    # Send to Gemini
+    result = grade_essay(
+        student_answer = extracted,
+        model_answer   = model_answer,
+        question_text  = question_text,
+        rubric         = rubric,
+        max_score      = max_score,
+    )
+
+    score    = result["score"]
+    feedback = result["feedback"]
+
+    # Build essay details for the frontend to display
+    essay_details = {
+        "key_points_hit":    result["key_points_hit"],
+        "key_points_missed": result["key_points_missed"],
+        "relevance":         result["relevance"],
+        "rubric_notes":      result["rubric_notes"],
+    }
+
+    return (extracted, score, feedback, essay_details)
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -245,19 +283,25 @@ def fuzzy_match(a: str, b: str) -> float:
 
 def compute_total_score(grading_results: list) -> dict:
     """
-    Computes total and max scores from grading results.
-    Essays (score=None) are excluded from total until AI grades them.
+    Computes total and max scores from all grading results including essays.
     """
-    total   = 0.0
-    maximum = 0.0
+    total          = 0.0
+    maximum        = 0.0
     pending_essays = 0
 
     for r in grading_results:
         maximum += r["max_score"]
-        if r["is_essay"]:
-            pending_essays += 1
-        elif r["score"] is not None:
+        if r["score"] is not None:
             total += r["score"]
+        elif r["is_essay"]:
+            pending_essays += 1  # Essay with no score = AI unavailable
+
+    return {
+        "total_score":    round(total, 2),
+        "max_score":      round(maximum, 2),
+        "pending_essays": pending_essays,
+        "percentage":     round((total / maximum * 100), 1) if maximum > 0 else 0.0,
+    }
 
     return {
         "total_score":     round(total, 2),

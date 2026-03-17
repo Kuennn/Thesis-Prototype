@@ -51,8 +51,15 @@ def process_paper(paper_id: int, db: Session = Depends(get_db)):
                 answer.extracted_text = result["extracted_answer"]
                 answer.score          = result["score"]
                 answer.feedback       = result["feedback"]
-
-        # Step 5: Compute totals
+                # Append essay details to feedback if present
+                if result.get("essay_details"):
+                    details = result["essay_details"]
+                    hit     = ", ".join(details.get("key_points_hit",    []))
+                    missed  = ", ".join(details.get("key_points_missed", []))
+                    extra   = f"\n\nKey points covered: {hit}" if hit else ""
+                    extra  += f"\nKey points missed: {missed}"  if missed else ""
+                    extra  += f"\nRubric: {details.get('rubric_notes', '')}" if details.get('rubric_notes') else ""
+                    answer.feedback = (answer.feedback or "") + extra
         summary           = compute_total_score(grading_results)
         paper.total_score = summary["total_score"]
         paper.max_score   = summary["max_score"]
