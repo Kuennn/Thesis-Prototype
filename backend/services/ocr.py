@@ -1,25 +1,53 @@
 # services/ocr.py
-# Handles image preprocessing and OCR text extraction
-# Pipeline: Load image → Preprocess with OpenCV → Extract text with EasyOCR
+# Hybrid OCR Pipeline — EasyOCR + TrOCR
+#
+# How it works:
+#   Step 1: OpenCV  — preprocesses image (deskew, denoise, threshold)
+#   Step 2: EasyOCR — detects WHERE text regions are on the page
+#   Step 3: TrOCR   — reads WHAT each text region says (better handwriting)
+#   Step 4: Combine — joins all regions into full extracted text
+#
+# Why hybrid:
+#   EasyOCR is great at finding text locations but struggles with messy handwriting
+#   TrOCR is great at reading handwriting but needs pre-cropped regions
+#   Together they produce significantly better results than either alone
 
 import cv2
 import numpy as np
 import easyocr
 import os
+import torch
 from PIL import Image
+from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
-# ─── EasyOCR Reader ───────────────────────────────────────────────────────────
-# Initialized once and reused — loading the model is slow (~5 seconds first time)
-# gpu=False means it runs on CPU, which works fine without a graphics card
-_reader = None
+# ─── Model Singletons ─────────────────────────────────────────────────────────
+# Both models are loaded once and reused — loading is slow the first time
 
-def get_reader():
-    global _reader
-    if _reader is None:
-        print("Loading EasyOCR model... (this takes a moment on first run)")
-        _reader = easyocr.Reader(['en'], gpu=False)
-        print("EasyOCR model loaded.")
-    return _reader
+_easyocr_reader   = None
+_trocr_processor  = None
+_trocr_model      = None
+
+def get_easyocr():
+    global _easyocr_reader
+    if _easyocr_reader is None:
+        print("Loading EasyOCR model...")
+        _easyocr_reader = easyocr.Reader(['en'], gpu=False)
+        print("EasyOCR loaded.")
+    return _easyocr_reader
+
+def get_trocr():
+    global _trocr_processor, _trocr_model
+    if _trocr_processor is None:
+        print("Loading TrOCR model (first run downloads ~300MB)...")
+        _trocr_processor = TrOCRProcessor.from_pretrained(
+            "microsoft/trocr-base-handwritten"
+        )
+        _trocr_model = VisionEncoderDecoderModel.from_pretrained(
+            "microsoft/trocr-base-handwritten"
+        )
+        _trocr_model.eval()  # Set to evaluation mode
+        print("TrOCR loaded.")
+    return _trocr_processor, _trocr_model
 
 
 # ─── Image Preprocessing ──────────────────────────────────────────────────────
@@ -27,34 +55,27 @@ def get_reader():
 def preprocess_image(image_path: str) -> np.ndarray:
     """
     Cleans up a scanned exam paper image before OCR:
-    1. Convert to grayscale        — removes color noise
-    2. Resize if too small         — ensures OCR reads small text
-    3. Deskew                      — straightens tilted scans
-    4. Denoise                     — removes scan artifacts
-    5. Adaptive threshold          — makes text stand out sharply
+    1. Convert to grayscale
+    2. Resize if too small
+    3. Deskew
+    4. Denoise
+    5. Adaptive threshold
     """
-    # Load image
     img = cv2.imread(image_path)
     if img is None:
         raise ValueError(f"Could not load image: {image_path}")
 
-    # Step 1: Convert to grayscale
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Step 2: Upscale if image is too small (OCR works best at 300+ DPI equivalent)
     h, w = gray.shape
     if w < 1000:
         scale = 1000 / w
-        gray = cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+        gray  = cv2.resize(gray, None, fx=scale, fy=scale,
+                           interpolation=cv2.INTER_CUBIC)
 
-    # Step 3: Deskew — detect and correct tilt up to ±15 degrees
     gray = deskew(gray)
-
-    # Step 4: Denoise — removes salt-and-pepper noise from scans
     gray = cv2.fastNlMeansDenoising(gray, h=10)
 
-    # Step 5: Adaptive threshold — makes handwriting/text black on white background
-    # This handles uneven lighting across the page
     processed = cv2.adaptiveThreshold(
         gray, 255,
         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
@@ -67,107 +88,175 @@ def preprocess_image(image_path: str) -> np.ndarray:
 
 
 def deskew(image: np.ndarray) -> np.ndarray:
-    """
-    Detects the angle of text lines and rotates the image to straighten them.
-    Works by finding the dominant angle of dark pixel runs in the image.
-    Only corrects angles within ±15 degrees to avoid over-rotating badly scanned pages.
-    """
-    # Find all non-white pixel coordinates
+    """Detects and corrects tilt angle of scanned pages."""
     coords = np.column_stack(np.where(image < 128))
     if len(coords) < 100:
-        return image  # Not enough content to detect angle
+        return image
 
-    # Use minAreaRect to find the angle of the text block
     angle = cv2.minAreaRect(coords)[-1]
-
-    # Normalize angle to -15..+15 range
     if angle < -45:
         angle = -(90 + angle)
     else:
         angle = -angle
 
-    # Only deskew if tilt is significant (> 0.5 degrees) but not extreme (> 15 degrees)
     if abs(angle) < 0.5 or abs(angle) > 15:
         return image
 
-    # Rotate image around its center
-    h, w = image.shape
+    h, w   = image.shape
     center = (w // 2, h // 2)
-    M = cv2.getRotationMatrix2D(center, angle, 1.0)
-    rotated = cv2.warpAffine(
-        image, M, (w, h),
-        flags=cv2.INTER_CUBIC,
-        borderMode=cv2.BORDER_REPLICATE
-    )
-    return rotated
+    M      = cv2.getRotationMatrix2D(center, angle, 1.0)
+    return cv2.warpAffine(image, M, (w, h),
+                          flags=cv2.INTER_CUBIC,
+                          borderMode=cv2.BORDER_REPLICATE)
 
 
-# ─── Text Extraction ──────────────────────────────────────────────────────────
+# ─── TrOCR Region Reader ──────────────────────────────────────────────────────
+
+def read_region_with_trocr(image: np.ndarray, bbox: list) -> str:
+    """
+    Crops a detected text region and reads it with TrOCR.
+    bbox format from EasyOCR: [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]
+    """
+    try:
+        # Get bounding box coordinates
+        pts   = np.array(bbox, dtype=np.int32)
+        x_min = max(0, pts[:, 0].min() - 4)
+        y_min = max(0, pts[:, 1].min() - 4)
+        x_max = min(image.shape[1], pts[:, 0].max() + 4)
+        y_max = min(image.shape[0], pts[:, 1].max() + 4)
+
+        # Skip regions that are too small
+        if (x_max - x_min) < 5 or (y_max - y_min) < 5:
+            return ""
+
+        # Crop the region
+        cropped = image[y_min:y_max, x_min:x_max]
+
+        # Convert to RGB PIL Image (TrOCR expects RGB)
+        if len(cropped.shape) == 2:
+            # Grayscale — convert to RGB
+            cropped_rgb = cv2.cvtColor(cropped, cv2.COLOR_GRAY2RGB)
+        else:
+            cropped_rgb = cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB)
+
+        pil_image = Image.fromarray(cropped_rgb)
+
+        # Resize if too small for TrOCR (min 32px height recommended)
+        if pil_image.height < 32:
+            scale     = 32 / pil_image.height
+            new_w     = int(pil_image.width * scale)
+            pil_image = pil_image.resize((new_w, 32), Image.LANCZOS)
+
+        # Run TrOCR
+        processor, model = get_trocr()
+        pixel_values     = processor(pil_image, return_tensors="pt").pixel_values
+
+        with torch.no_grad():
+            generated = model.generate(pixel_values)
+
+        text = processor.batch_decode(generated, skip_special_tokens=True)[0]
+        return text.strip()
+
+    except Exception as e:
+        print(f"TrOCR region read failed: {e}")
+        return ""
+
+
+# ─── Main Hybrid Extraction ───────────────────────────────────────────────────
 
 def extract_text_from_image(image_path: str) -> dict:
     """
-    Main function: takes an image path, preprocesses it, runs EasyOCR,
-    and returns the extracted text along with confidence scores.
+    Main function: Hybrid OCR pipeline.
+    EasyOCR finds text regions, TrOCR reads each region.
 
     Returns:
         {
-            "full_text": "...",           # All extracted text joined
-            "lines": [...],              # Individual text lines with confidence
-            "average_confidence": 0.85,  # How confident OCR is (0.0 - 1.0)
-            "word_count": 42,
+            "full_text":          str,
+            "lines":              list,
+            "average_confidence": float,
+            "word_count":         int,
+            "ocr_method":         str,
         }
     """
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"Image not found: {image_path}")
 
-    # Preprocess the image
+    # Step 1: Preprocess image
     processed = preprocess_image(image_path)
 
-    # Save preprocessed image to a temp file for EasyOCR
-    # (EasyOCR accepts numpy arrays directly too, but file path is more stable)
+    # Save preprocessed image temporarily
     temp_path = image_path + "_preprocessed.png"
     cv2.imwrite(temp_path, processed)
 
     try:
-        reader = get_reader()
+        # Step 2: EasyOCR detects text regions
+        reader       = get_easyocr()
+        easy_results = reader.readtext(temp_path, detail=1, paragraph=False)
 
-        # Run OCR — returns list of [bounding_box, text, confidence]
-        results = reader.readtext(temp_path, detail=1, paragraph=False)
+        if not easy_results:
+            return {
+                "full_text":          "",
+                "lines":              [],
+                "average_confidence": 0.0,
+                "word_count":         0,
+                "ocr_method":         "hybrid",
+            }
 
-        # Parse results
-        lines = []
+        # Step 3: TrOCR reads each detected region
+        # Load original preprocessed image for cropping
+        proc_img = cv2.imread(temp_path)
+
+        lines       = []
         confidences = []
 
-        for (bbox, text, confidence) in results:
-            text = text.strip()
-            if text and confidence > 0.1:  # Filter out very low confidence noise
+        for (bbox, easy_text, confidence) in easy_results:
+            if confidence < 0.1:
+                continue
+
+            # Use TrOCR to read this region more accurately
+            trocr_text = read_region_with_trocr(proc_img, bbox)
+
+            # Choose the better result:
+            # TrOCR for handwriting (longer text = more context = more reliable)
+            # EasyOCR as fallback if TrOCR returns empty
+            final_text = trocr_text if trocr_text else easy_text
+
+            if final_text:
                 lines.append({
-                    "text":       text,
-                    "confidence": round(confidence, 3),
-                    "bbox":       bbox,  # [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]
+                    "text":        final_text,
+                    "easy_text":   easy_text,   # Keep EasyOCR result for comparison
+                    "trocr_text":  trocr_text,  # Keep TrOCR result for comparison
+                    "confidence":  round(confidence, 3),
+                    "bbox":        bbox,
                 })
                 confidences.append(confidence)
 
-        full_text = " ".join([l["text"] for l in lines])
-        avg_confidence = round(sum(confidences) / len(confidences), 3) if confidences else 0.0
+        # Step 4: Combine all regions into full text
+        # Sort by vertical position (top to bottom) then horizontal (left to right)
+        lines.sort(key=lambda x: (
+            min(pt[1] for pt in x["bbox"]),  # y position
+            min(pt[0] for pt in x["bbox"]),  # x position
+        ))
+
+        full_text      = " ".join([l["text"] for l in lines])
+        avg_confidence = round(
+            sum(confidences) / len(confidences), 3
+        ) if confidences else 0.0
 
         return {
             "full_text":          full_text,
             "lines":              lines,
             "average_confidence": avg_confidence,
             "word_count":         len(full_text.split()),
+            "ocr_method":         "hybrid (EasyOCR + TrOCR)",
         }
 
     finally:
-        # Always clean up the temp file
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
 
 def extract_text_simple(image_path: str) -> str:
-    """
-    Simplified version — just returns the extracted text string.
-    Used internally when we only need the text, not the full metadata.
-    """
+    """Simplified version — just returns the extracted text string."""
     result = extract_text_from_image(image_path)
     return result["full_text"]
