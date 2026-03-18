@@ -1,7 +1,14 @@
 # services/essay_grader.py
-# Grades essay/open-ended answers using Google Gemini API.
+# Grades essay/open-ended answers using Groq API (LLaMA 3)
+#
+# Evaluation criteria:
+#   1. Key points covered   — did the student mention the important concepts?
+#   2. Relevance            — is the answer actually about the question asked?
+#   3. Rubric alignment     — does it meet the teacher's grading criteria?
+#
+# Scoring: Balanced — partial credit for partially correct answers
 
-import google.generativeai as genai
+from groq import Groq
 import json
 import re
 import os
@@ -10,39 +17,24 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
-print("API KEY LOADED:", os.getenv("GEMINI_API_KEY"))
+print("Groq essay grader loaded.")
 
-# ─── Gemini Setup ─────────────────────────────────────────────────────────────
+# ─── Groq Setup ───────────────────────────────────────────────────────────────
 
-_model = None
+_client = None
 
-def list_available_models():
-    """Prints all models available on your API key — run once to find the right model name."""
-    try:
-        for m in genai.list_models():
-            if "generateContent" in m.supported_generation_methods:
-                print("AVAILABLE MODEL:", m.name)
-    except Exception as e:
-        print("Could not list models:", e)
-
-def get_model():
-    global _model
-    if _model is None:
-        api_key = os.getenv("GEMINI_API_KEY")
+def get_client():
+    global _client
+    if _client is None:
+        api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
             raise ValueError(
-                "GEMINI_API_KEY not found. "
-                "Make sure you created a .env file with your API key."
+                "GROQ_API_KEY not found. "
+                "Make sure your .env file has GROQ_API_KEY=your_key_here"
             )
-        genai.configure(api_key=api_key)
-
-        # List available models so we can see what's supported
-        print("Listing available models for your API key:")
-        list_available_models()
-
-        _model = genai.GenerativeModel("models/gemini-2.0-flash-lite")
-        print("Gemini model loaded.")
-    return _model
+        _client = Groq(api_key=api_key)
+        print("Groq client loaded.")
+    return _client
 
 
 # ─── Main Essay Grader ────────────────────────────────────────────────────────
@@ -54,6 +46,19 @@ def grade_essay(
     rubric:          str,
     max_score:       float,
 ) -> dict:
+    """
+    Sends the student's essay to Groq (LLaMA 3) for grading.
+
+    Returns:
+        {
+            "score":             float,
+            "feedback":          str,
+            "key_points_hit":    list,
+            "key_points_missed": list,
+            "relevance":         str,
+            "rubric_notes":      str,
+        }
+    """
     if not student_answer or not student_answer.strip():
         return {
             "score":             0.0,
@@ -69,15 +74,22 @@ def grade_essay(
     )
 
     try:
-        model = get_model()
-        for attempt in range(3):
+        client = get_client()
+        for attempt in range(3):  # Retry up to 3 times
             try:
-                response = model.generate_content(prompt)
-                result   = parse_gemini_response(response.text, max_score)
+                response = client.chat.completions.create(
+                    model = "llama-3.1-8b-instant",
+                    messages = [{"role": "user", "content": prompt}],
+                    temperature = 0.3,  # Lower = more consistent grading
+                )
+                result = parse_groq_response(
+                    response.choices[0].message.content, max_score
+                )
                 return result
+
             except Exception as retry_err:
                 if "429" in str(retry_err) and attempt < 2:
-                    wait = (attempt + 1) * 20
+                    wait = (attempt + 1) * 10  # Wait 10s, then 20s
                     print(f"Rate limited, retrying in {wait}s...")
                     time.sleep(wait)
                 else:
@@ -87,7 +99,7 @@ def grade_essay(
         raise e
 
     except Exception as e:
-        print(f"Gemini API error: {e}")
+        print(f"Groq API error: {e}")
         return {
             "score":             None,
             "feedback":          f"AI grading temporarily unavailable. Error: {str(e)}",
@@ -156,7 +168,11 @@ Respond ONLY with a valid JSON object — no extra text, no markdown, no backtic
 
 # ─── Response Parser ──────────────────────────────────────────────────────────
 
-def parse_gemini_response(response_text: str, max_score: float) -> dict:
+def parse_groq_response(response_text: str, max_score: float) -> dict:
+    """
+    Parses Groq's JSON response safely.
+    Handles cases where the model adds extra text around the JSON.
+    """
     cleaned = response_text.strip()
     cleaned = re.sub(r'^```json\s*', '', cleaned)
     cleaned = re.sub(r'^```\s*',     '', cleaned)
@@ -166,15 +182,16 @@ def parse_gemini_response(response_text: str, max_score: float) -> dict:
     try:
         data = json.loads(cleaned)
     except json.JSONDecodeError:
+        # Try to extract JSON object from response using regex
         match = re.search(r'\{.*\}', cleaned, re.DOTALL)
         if match:
             data = json.loads(match.group())
         else:
-            raise ValueError(f"Could not parse Gemini response: {cleaned[:200]}")
+            raise ValueError(f"Could not parse Groq response: {cleaned[:200]}")
 
     score = float(data.get("score", 0))
-    score = max(0.0, min(score, max_score))
-    score = round(score * 2) / 2
+    score = max(0.0, min(score, max_score))  # Clamp between 0 and max_score
+    score = round(score * 2) / 2             # Round to nearest 0.5
 
     return {
         "score":             score,
@@ -189,6 +206,12 @@ def parse_gemini_response(response_text: str, max_score: float) -> dict:
 # ─── Batch Essay Grader ───────────────────────────────────────────────────────
 
 def grade_all_essays(essay_questions: list) -> list:
+    """
+    Grades multiple essay questions for one paper.
+    Each item in essay_questions should be a dict with:
+        question_id, student_answer, model_answer,
+        question_text, rubric, max_score
+    """
     results = []
     for q in essay_questions:
         result = grade_essay(
