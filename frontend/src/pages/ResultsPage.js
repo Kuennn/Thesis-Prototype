@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getAllExams, getPapersByExam, getExamSummary, getPaperResults, processPaper, overrideScore } from '../api/api';
+import { getAllExams, getPapersByExam, getExamSummary, getPaperResults, processPaper, overrideScore, deletePaper } from '../api/api';
 import './ResultsPage.css';
 
 // ─── Score Badge ──────────────────────────────────────────────────────────────
@@ -211,8 +211,8 @@ function PaperDetailPanel({ paperId, onClose, onOverrideSuccess }) {
   useEffect(() => { loadDetail(); }, [loadDetail]);
 
   const handleOverrideSuccess = () => {
-    loadDetail();           // Refresh this panel
-    onOverrideSuccess();    // Refresh the papers list scores
+    loadDetail();
+    onOverrideSuccess();
   };
 
   return (
@@ -263,7 +263,7 @@ export default function ResultsPage() {
   const [selectedPaper,  setSelectedPaper]  = useState(null);
   const [loadingExams,   setLoadingExams]   = useState(true);
   const [loadingPapers,  setLoadingPapers]  = useState(false);
-  const [processing,     setProcessing]     = useState({});  // { paperId: true/false }
+  const [processing,     setProcessing]     = useState({});
   const [error,          setError]          = useState(null);
 
   // Load exams on mount
@@ -303,8 +303,8 @@ export default function ResultsPage() {
       getPapersByExam(selectedExamId),
       getExamSummary(selectedExamId),
     ]).then(([papersData, summaryData]) => {
-      setPapers([...papersData]);    // ← spread forces React to see new array
-      setSummary({...summaryData});  // ← spread forces React to see new object
+      setPapers([...papersData]);
+      setSummary({...summaryData});
     });
   }, [selectedExamId]);
 
@@ -315,12 +315,25 @@ export default function ResultsPage() {
     try {
       await processPaper(paperId);
       refreshPapers();
-      // If this paper is currently open in detail, refresh it
       if (selectedPaper === paperId) setSelectedPaper(null);
     } catch (e) {
       setError(`Processing failed: ${e.message}`);
     } finally {
       setProcessing(prev => ({ ...prev, [paperId]: false }));
+    }
+  };
+
+  // Delete a paper
+  const handleDeletePaper = async (paper, e) => {
+    e.stopPropagation();
+    if (!window.confirm(`Delete "${paper.student_name}"? This cannot be undone.`)) return;
+    setError(null);
+    try {
+      await deletePaper(paper.id);
+      if (selectedPaper === paper.id) setSelectedPaper(null);
+      refreshPapers();
+    } catch (err) {
+      setError(`Delete failed: ${err.message}`);
     }
   };
 
@@ -458,6 +471,18 @@ export default function ResultsPage() {
                       Re-process
                     </button>
                   )}
+
+                  {/* Delete button */}
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={e => handleDeletePaper(paper, e)}
+                    title="Delete paper"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 2l8 8M10 2L2 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                    Delete
+                  </button>
                 </div>
               </div>
             ))

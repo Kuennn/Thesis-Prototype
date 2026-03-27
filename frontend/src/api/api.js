@@ -31,6 +31,17 @@ export async function getExam(examId) {
   return res.json();
 }
 
+export async function deleteExam(examId) {
+  const res = await fetch(`${BASE_URL}/api/exams/${examId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'Failed to delete exam');
+  }
+  return res.json();
+}
+
 // ─── Papers ───────────────────────────────────────────────────────────────────
 
 export async function uploadPapers(examId, files, onFileProgress) {
@@ -71,6 +82,17 @@ export async function uploadPapers(examId, files, onFileProgress) {
 export async function getPapersByExam(examId) {
   const res = await fetch(`${BASE_URL}/api/papers/exam/${examId}`);
   if (!res.ok) throw new Error('Failed to fetch papers');
+  return res.json();
+}
+
+export async function deletePaper(paperId) {
+  const res = await fetch(`${BASE_URL}/api/papers/${paperId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'Failed to delete paper');
+  }
   return res.json();
 }
 
@@ -118,4 +140,3 @@ export async function getPaperResults(paperId) {
   if (!res.ok) throw new Error('Failed to fetch paper results');
   return res.json();
 }
-

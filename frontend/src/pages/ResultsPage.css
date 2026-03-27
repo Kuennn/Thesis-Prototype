@@ -266,6 +266,24 @@
   background: var(--accent-glow);
 }
 
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #a3360b;
+  border-color: #a3360b;
+  transform: translateY(-1px);
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  border-radius: 6px;
+}
+
 .btn-icon {
   width: 32px;
   height: 32px;

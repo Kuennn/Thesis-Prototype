@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllExams, createExam } from '../api/api';
+import { getAllExams, createExam, deleteExam } from '../api/api';
 import './ExamsPage.css';
 
 const QUESTION_TYPES = [
@@ -95,6 +95,18 @@ export default function ExamsPage() {
       setError(err.message || 'Failed to save exam.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDeleteExam(exam) {
+    if (!window.confirm(`Delete "${exam.name}"? This cannot be undone.`)) return;
+    setError(null);
+    try {
+      await deleteExam(exam.id);
+      setSuccess(`Exam "${exam.name}" deleted.`);
+      loadExams();
+    } catch (err) {
+      setError(err.message || 'Failed to delete exam.');
     }
   }
 
@@ -321,6 +333,16 @@ export default function ExamsPage() {
                   {exam.questions?.length || 0} question{exam.questions?.length !== 1 ? 's' : ''}
                 </span>
                 <span className="exam-card-id">ID: {exam.id}</span>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={() => handleDeleteExam(exam)}
+                  title="Delete exam"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M2 2l8 8M10 2L2 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                  Delete
+                </button>
               </div>
             </div>
           ))

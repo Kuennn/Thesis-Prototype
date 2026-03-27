@@ -299,6 +299,24 @@
   transform: translateY(-1px);
 }
 
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #a3360b;
+  border-color: #a3360b;
+  transform: translateY(-1px);
+}
+
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  border-radius: 6px;
+}
+
 /* Exams list */
 .exams-loading,
 .exams-empty {
