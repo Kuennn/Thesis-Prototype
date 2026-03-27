@@ -36,7 +36,6 @@ export async function getExam(examId) {
 export async function uploadPapers(examId, files, onFileProgress) {
   const results = [];
 
-  // Upload files one by one so we can track per-file status
   for (let i = 0; i < files.length; i++) {
     const entry = files[i];
     onFileProgress(entry.id, 'uploading');
@@ -69,11 +68,27 @@ export async function uploadPapers(examId, files, onFileProgress) {
   return results;
 }
 
-// ─── Papers ───────────────────────────────────────────────────────────────────
-
 export async function getPapersByExam(examId) {
   const res = await fetch(`${BASE_URL}/api/papers/exam/${examId}`);
   if (!res.ok) throw new Error('Failed to fetch papers');
+  return res.json();
+}
+
+// ─── Teacher Override ─────────────────────────────────────────────────────────
+
+export async function overrideScore(paperId, answerId, teacherScore, teacherNote) {
+  const res = await fetch(`${BASE_URL}/api/papers/${paperId}/override/${answerId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      teacher_score: teacherScore,
+      teacher_note:  teacherNote || null,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'Override failed');
+  }
   return res.json();
 }
 
@@ -103,3 +118,4 @@ export async function getPaperResults(paperId) {
   if (!res.ok) throw new Error('Failed to fetch paper results');
   return res.json();
 }
+

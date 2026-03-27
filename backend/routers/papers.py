@@ -164,12 +164,8 @@ def override_score(
     payload:   TeacherOverride,
     db:        Session = Depends(get_db),
 ):
-    """
-    Allows the teacher to manually correct an AI-assigned score.
-    This is the human-in-the-loop feature of the hybrid system.
-    """
     answer = db.query(StudentAnswer).filter(
-        StudentAnswer.id == answer_id,
+        StudentAnswer.id       == answer_id,
         StudentAnswer.paper_id == paper_id
     ).first()
     if not answer:
@@ -177,9 +173,26 @@ def override_score(
 
     answer.teacher_score = payload.teacher_score
     answer.teacher_note  = payload.teacher_note
+
+    # Recalculate paper total score using teacher overrides where available
+    all_answers = db.query(StudentAnswer).filter(
+        StudentAnswer.paper_id == paper_id
+    ).all()
+
+    total = 0.0
+    for a in all_answers:
+        # Use teacher score if overridden, otherwise use AI score
+        final = a.teacher_score if a.teacher_score is not None else a.score
+        if final is not None:
+            total += final
+
+    paper = db.query(StudentPaper).filter(StudentPaper.id == paper_id).first()
+    if paper:
+        paper.total_score = round(total, 2)
+
     db.commit()
     db.refresh(answer)
-    return {"message": "Score overridden successfully", "answer_id": answer_id}
+    return {"message": "Score overridden successfully", "answer_id": answer_id, "new_total": round(total, 2)}
 
 
 @router.delete("/{paper_id}", summary="Delete a paper and its image")

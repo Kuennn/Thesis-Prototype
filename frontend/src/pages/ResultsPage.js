@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getAllExams, getPapersByExam, getExamSummary, getPaperResults, processPaper } from '../api/api';
+import { getAllExams, getPapersByExam, getExamSummary, getPaperResults, processPaper, overrideScore } from '../api/api';
 import './ResultsPage.css';
 
 // ─── Score Badge ──────────────────────────────────────────────────────────────
@@ -55,10 +55,39 @@ function SummaryCards({ summary }) {
 }
 
 // ─── Question Breakdown Row ───────────────────────────────────────────────────
-function QuestionRow({ item }) {
+function QuestionRow({ item, paperId, onOverrideSuccess }) {
+  const [showForm,   setShowForm]   = useState(false);
+  const [newScore,   setNewScore]   = useState('');
+  const [newNote,    setNewNote]    = useState('');
+  const [saving,     setSaving]     = useState(false);
+  const [saveError,  setSaveError]  = useState(null);
+
   const finalScore = item.teacher_score ?? item.ai_score;
-  const pct        = item.max_score > 0 ? (finalScore / item.max_score) * 100 : 0;
+  const pct        = item.max_score > 0 && finalScore != null
+    ? (finalScore / item.max_score) * 100 : 0;
   const correct    = finalScore != null && finalScore >= item.max_score;
+
+  const handleOverride = async () => {
+    const score = parseFloat(newScore);
+    if (isNaN(score) || score < 0 || score > item.max_score) {
+      setSaveError(`Score must be between 0 and ${item.max_score}`);
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const answerId = item.answer_id ?? item.id;
+      await overrideScore(paperId, answerId, score, newNote);
+      setShowForm(false);
+      setNewScore('');
+      setNewNote('');
+      onOverrideSuccess();
+    } catch (e) {
+      setSaveError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className={`question-row ${correct ? 'correct' : finalScore == null ? 'pending' : 'incorrect'}`}>
@@ -66,6 +95,7 @@ function QuestionRow({ item }) {
         <span className="qrow-number">Q{item.question_no}</span>
         <span className="qrow-type">{item.question_type?.replace('_', ' ')}</span>
       </div>
+
       <div className="qrow-middle">
         <div className="qrow-answers">
           <span className="qrow-label">OCR read</span>
@@ -86,7 +116,61 @@ function QuestionRow({ item }) {
             {item.teacher_note && ` — "${item.teacher_note}"`}
           </p>
         )}
+
+        {/* Override form */}
+        {showForm && (
+          <div className="override-form">
+            <div className="override-form-row">
+              <div className="override-field">
+                <label className="override-label">
+                  New score (0 – {item.max_score})
+                </label>
+                <input
+                  type="number"
+                  className="override-input"
+                  min="0"
+                  max={item.max_score}
+                  step="0.5"
+                  value={newScore}
+                  onChange={e => setNewScore(e.target.value)}
+                  placeholder={`0 – ${item.max_score}`}
+                  autoFocus
+                />
+              </div>
+              <div className="override-field override-field-note">
+                <label className="override-label">Note (optional)</label>
+                <input
+                  type="text"
+                  className="override-input"
+                  value={newNote}
+                  onChange={e => setNewNote(e.target.value)}
+                  placeholder="Reason for override..."
+                />
+              </div>
+            </div>
+            {saveError && (
+              <p className="override-error">{saveError}</p>
+            )}
+            <div className="override-actions">
+              <button
+                className="btn btn-ghost override-btn-sm"
+                onClick={() => { setShowForm(false); setSaveError(null); }}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary override-btn-sm"
+                onClick={handleOverride}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Save Override'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
       <div className="qrow-right">
         {finalScore != null ? (
           <>
@@ -98,23 +182,38 @@ function QuestionRow({ item }) {
         ) : (
           <span className="qrow-pending">Pending</span>
         )}
+        <button
+          className="btn-override-toggle"
+          onClick={() => setShowForm(f => !f)}
+          title={showForm ? 'Cancel override' : 'Override score'}
+        >
+          ✎
+        </button>
       </div>
     </div>
   );
 }
 
 // ─── Paper Detail Modal ───────────────────────────────────────────────────────
-function PaperDetailPanel({ paperId, onClose }) {
+function PaperDetailPanel({ paperId, onClose, onOverrideSuccess }) {
   const [detail, setDetail]   = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
 
-  useEffect(() => {
+  const loadDetail = useCallback(() => {
+    setLoading(true);
     getPaperResults(paperId)
       .then(setDetail)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [paperId]);
+
+  useEffect(() => { loadDetail(); }, [loadDetail]);
+
+  const handleOverrideSuccess = () => {
+    loadDetail();           // Refresh this panel
+    onOverrideSuccess();    // Refresh the papers list scores
+  };
 
   return (
     <div className="detail-panel fade-up">
@@ -141,7 +240,12 @@ function PaperDetailPanel({ paperId, onClose }) {
             <p className="detail-empty">No answers recorded yet.</p>
           ) : (
             detail.breakdown.map((item, i) => (
-              <QuestionRow key={i} item={item} />
+              <QuestionRow
+                key={i}
+                item={item}
+                paperId={paperId}
+                onOverrideSuccess={handleOverrideSuccess}
+              />
             ))
           )}
         </div>
@@ -199,8 +303,8 @@ export default function ResultsPage() {
       getPapersByExam(selectedExamId),
       getExamSummary(selectedExamId),
     ]).then(([papersData, summaryData]) => {
-      setPapers(papersData);
-      setSummary(summaryData);
+      setPapers([...papersData]);    // ← spread forces React to see new array
+      setSummary({...summaryData});  // ← spread forces React to see new object
     });
   }, [selectedExamId]);
 
@@ -366,6 +470,7 @@ export default function ResultsPage() {
             key={selectedPaper}
             paperId={selectedPaper}
             onClose={() => setSelectedPaper(null)}
+            onOverrideSuccess={refreshPapers}
           />
         )}
       </div>

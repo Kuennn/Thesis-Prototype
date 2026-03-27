@@ -57,6 +57,7 @@ def get_paper_results(paper_id: int, db: Session = Depends(get_db)):
         # Use teacher override if available, otherwise use AI score
         final_score = ans.teacher_score if ans.teacher_score is not None else ans.score
         breakdown.append({
+            "answer_id":        ans.id,
             "question_no":      question.question_no if question else None,
             "question_type":    question.question_type if question else None,
             "question_text":    question.question_text if question else None,

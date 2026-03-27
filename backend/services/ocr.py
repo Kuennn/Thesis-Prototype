@@ -152,7 +152,7 @@ def read_region_with_trocr(image: np.ndarray, bbox: list) -> str:
         pixel_values     = processor(pil_image, return_tensors="pt").pixel_values
 
         with torch.no_grad():
-            generated = model.generate(pixel_values)
+            generated = model.generate(pixel_values, max_new_tokens=64)
 
         text = processor.batch_decode(generated, skip_special_tokens=True)[0]
         return text.strip()

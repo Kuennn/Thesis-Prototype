@@ -457,3 +457,98 @@
 }
 
 .question-row.incorrect .qrow-bar-fill { background: var(--danger); }
+
+/* ─── Teacher Override ─────────────────────────────────────────────────────── */
+.btn-override-toggle {
+  background: none;
+  border: 1px solid rgba(26,26,24,0.12);
+  border-radius: var(--radius-sm);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  margin-top: 4px;
+  transition: all var(--transition);
+  padding: 0;
+}
+
+.btn-override-toggle:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
+  border-color: rgba(82,183,136,0.35);
+}
+
+.override-form {
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--cream);
+  border: 1px solid rgba(26,26,24,0.1);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: fadeUp 0.2s ease both;
+}
+
+.override-form-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.override-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.override-field-note {
+  flex: 1;
+}
+
+.override-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.override-input {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(26,26,24,0.14);
+  background: var(--white);
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.override-input:focus {
+  border-color: var(--accent-light);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.override-error {
+  font-size: 0.8rem;
+  color: var(--danger);
+  margin: 0;
+}
+
+.override-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.override-btn-sm {
+  padding: 5px 14px !important;
+  font-size: 0.82rem !important;
+}
