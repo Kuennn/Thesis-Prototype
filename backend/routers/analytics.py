@@ -4,7 +4,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database.database import get_db
-from models.models import StudentPaper, StudentAnswer, Question, Exam, PaperStatus
+from models.models import StudentPaper, StudentAnswer, Question, Exam, PaperStatus, Student
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
 
@@ -126,19 +126,26 @@ def get_exam_analytics(exam_id: int, db: Session = Depends(get_db)):
         })
 
     # ── Student ranking ───────────────────────────────────────────────────────
-    students = sorted([
-        {
+    students = []
+    for p in papers:
+        if p.total_score is None:
+            continue
+        # Resolve name from Student record if linked, fallback to stored name
+        name = p.student_name
+        if p.student_id:
+            student = db.query(Student).filter(Student.id == p.student_id).first()
+            if student:
+                name = f"{student.first_name} {student.last_name}"
+        pct = round(p.total_score / max_score * 100, 1) if max_score > 0 else 0
+        students.append({
             "paper_id":     p.id,
-            "student_name": p.student_name,
+            "student_name": name,
             "total_score":  p.total_score,
             "max_score":    max_score,
-            "percentage":   round(p.total_score / max_score * 100, 1)
-                            if max_score > 0 and p.total_score is not None else 0,
-            "passed":       (p.total_score / max_score >= 0.75)
-                            if max_score > 0 and p.total_score is not None else False,
-        }
-        for p in papers if p.total_score is not None
-    ], key=lambda x: x["total_score"], reverse=True)
+            "percentage":   pct,
+            "passed":       pct >= 75,
+        })
+    students.sort(key=lambda x: x["total_score"], reverse=True)
 
     return {
         "exam_id":      exam_id,

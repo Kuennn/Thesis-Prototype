@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Navbar from './components/Navbar';
+import ClassesPage from './pages/ClassesPage';
 import UploadPage from './pages/UploadPage';
 import ExamsPage from './pages/ExamsPage';
 import ResultsPage from './pages/ResultsPage';
@@ -8,17 +9,18 @@ import AnswerSheetPage from './pages/AnswerSheetPage';
 import './App.css';
 
 export default function App() {
-  const [activePage, setActivePage] = useState('upload');
+  const [activePage, setActivePage] = useState('classes');
 
   return (
     <div className="app-shell">
       <Navbar activePage={activePage} setActivePage={setActivePage} />
       <main className="app-main">
-        {activePage === 'upload'       && <UploadPage />}
-        {activePage === 'results'      && <ResultsPage />}
-        {activePage === 'keys'         && <ExamsPage />}
-        {activePage === 'analytics'    && <AnalyticsPage />}
-        {activePage === 'answersheet'  && <AnswerSheetPage />}
+        {activePage === 'classes'     && <ClassesPage />}
+        {activePage === 'upload'      && <UploadPage />}
+        {activePage === 'results'     && <ResultsPage />}
+        {activePage === 'keys'        && <ExamsPage />}
+        {activePage === 'analytics'   && <AnalyticsPage />}
+        {activePage === 'answersheet' && <AnswerSheetPage />}
       </main>
     </div>
   );

@@ -175,3 +175,82 @@
   border: 1px solid rgba(193, 68, 14, 0.25);
   color: var(--danger);
 }
+
+/* ─── Upload selectors ────────────────────────────────────────────────────── */
+.upload-selectors {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 700px) {
+  .upload-selectors { grid-template-columns: 1fr; }
+}
+
+.field-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a5a52' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+.field-loading {
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  color: var(--ink-faint);
+  font-style: italic;
+  border: 1px solid rgba(26,26,24,0.1);
+  border-radius: var(--radius-sm);
+}
+
+.field-empty {
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--danger);
+  background: rgba(193,68,14,0.06);
+  border: 1px solid rgba(193,68,14,0.2);
+  border-radius: var(--radius-sm);
+  line-height: 1.5;
+}
+
+/* ─── Upload summary chip ─────────────────────────────────────────────────── */
+.upload-summary-chip {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--white);
+  border: 1px solid rgba(82,183,136,0.3);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.summary-chip-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.summary-chip-label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.summary-chip-val {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.summary-chip-sep {
+  width: 1px;
+  height: 28px;
+  background: rgba(26,26,24,0.1);
+  flex-shrink: 0;
+}

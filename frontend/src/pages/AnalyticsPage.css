@@ -488,3 +488,53 @@
 }
 
 .btn-spinner svg { animation: spin 0.9s linear infinite; display: flex; }
+
+/* ─── Two-column selector row ─────────────────────────────────────────────── */
+.analytics-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 600px) {
+  .analytics-controls { grid-template-columns: 1fr; }
+}
+
+/* ─── Info chip ───────────────────────────────────────────────────────────── */
+.analytics-info-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--white);
+  border: 1px solid rgba(82,183,136,0.25);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  flex-wrap: wrap;
+}
+
+.aic-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.aic-label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.aic-val {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.aic-sep {
+  width: 1px;
+  height: 28px;
+  background: rgba(26,26,24,0.1);
+  flex-shrink: 0;
+}

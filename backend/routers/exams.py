@@ -1,16 +1,18 @@
 # routers/exams.py
 # Endpoints for creating and retrieving exams
+# Phase 5 update: Exams now belong to a Class
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
 from database.database import get_db
-from models.models import Exam, Question, QuestionType
+from models.models import Exam, Question, QuestionType, Class, ClassEnrollment
 
 router = APIRouter(prefix="/api/exams", tags=["Exams"])
 
-# ─── Pydantic Schemas (request/response shapes) ───────────────────────────────
+
+# ─── Schemas ──────────────────────────────────────────────────────────────────
 
 class QuestionIn(BaseModel):
     question_no:   int
@@ -23,33 +25,42 @@ class QuestionIn(BaseModel):
 class ExamIn(BaseModel):
     name:      str
     subject:   str
+    class_id:  Optional[int] = None   # Required for new exams, optional for backward compat
     questions: List[QuestionIn] = []
 
 class QuestionOut(QuestionIn):
-    id: int
+    id:      int
     exam_id: int
     class Config:
         from_attributes = True
 
 class ExamOut(BaseModel):
-    id:         int
-    name:       str
-    subject:    str
-    questions:  List[QuestionOut] = []
+    id:        int
+    name:      str
+    subject:   str
+    class_id:  Optional[int]
+    questions: List[QuestionOut] = []
     class Config:
         from_attributes = True
 
+
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
-@router.post("/", response_model=ExamOut, summary="Create a new exam with its answer key")
+@router.post("/", response_model=ExamOut, summary="Create a new exam with answer key")
 def create_exam(payload: ExamIn, db: Session = Depends(get_db)):
-    """
-    Creates an exam and saves all its questions + answer keys to the database.
-    Call this before uploading student papers.
-    """
-    exam = Exam(name=payload.name, subject=payload.subject)
+    # Validate class exists if class_id provided
+    if payload.class_id:
+        class_ = db.query(Class).filter(Class.id == payload.class_id).first()
+        if not class_:
+            raise HTTPException(status_code=404, detail="Class not found")
+
+    exam = Exam(
+        name     = payload.name,
+        subject  = payload.subject,
+        class_id = payload.class_id,
+    )
     db.add(exam)
-    db.flush()  # Get the exam ID before committing
+    db.flush()
 
     for q in payload.questions:
         question = Question(
@@ -69,8 +80,12 @@ def create_exam(payload: ExamIn, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=List[ExamOut], summary="Get all exams")
-def get_all_exams(db: Session = Depends(get_db)):
-    return db.query(Exam).order_by(Exam.created_at.desc()).all()
+def get_all_exams(class_id: Optional[int] = None, db: Session = Depends(get_db)):
+    """Get all exams. Optionally filter by class_id."""
+    query = db.query(Exam)
+    if class_id:
+        query = query.filter(Exam.class_id == class_id)
+    return query.order_by(Exam.created_at.desc()).all()
 
 
 @router.get("/{exam_id}", response_model=ExamOut, summary="Get one exam by ID")

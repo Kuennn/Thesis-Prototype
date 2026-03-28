@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { getAllExams, getExamAnalytics, getAIAnalysis } from '../api/api';
+import React, { useState, useEffect, useCallback } from 'react';
+import { getAllClasses, getAllExams, getExamAnalytics, getAIAnalysis } from '../api/api';
 import './AnalyticsPage.css';
 
-// ─── Simple bar chart using SVG ───────────────────────────────────────────────
+// ─── Bar Chart ────────────────────────────────────────────────────────────────
 function BarChart({ data, title, valueKey, labelKey, color = 'var(--accent)' }) {
   if (!data || data.length === 0) return null;
   const max = Math.max(...data.map(d => d[valueKey]), 1);
-
   return (
     <div className="chart-card">
       <h3 className="chart-title">{title}</h3>
@@ -17,10 +16,8 @@ function BarChart({ data, title, valueKey, labelKey, color = 'var(--accent)' }) 
             <div key={i} className="bar-group">
               <div className="bar-wrap">
                 <span className="bar-value">{item[valueKey]}</span>
-                <div
-                  className="bar-fill"
-                  style={{ height: `${Math.max(pct, 2)}%`, background: color }}
-                />
+                <div className="bar-fill"
+                  style={{ height: `${Math.max(pct, 2)}%`, background: color }} />
               </div>
               <span className="bar-label">{item[labelKey]}</span>
             </div>
@@ -31,22 +28,17 @@ function BarChart({ data, title, valueKey, labelKey, color = 'var(--accent)' }) 
   );
 }
 
-// ─── Horizontal accuracy bar ──────────────────────────────────────────────────
-function AccuracyBar({ pct, color }) {
-  const bg = pct >= 75 ? 'var(--accent-light)'
-           : pct >= 50 ? '#f4a623'
-           : 'var(--danger)';
+// ─── Accuracy Bar ─────────────────────────────────────────────────────────────
+function AccuracyBar({ pct }) {
+  const bg = pct >= 75 ? 'var(--accent-light)' : pct >= 50 ? '#f4a623' : 'var(--danger)';
   return (
     <div className="acc-bar-track">
-      <div
-        className="acc-bar-fill"
-        style={{ width: `${Math.min(pct, 100)}%`, background: color || bg }}
-      />
+      <div className="acc-bar-fill" style={{ width: `${Math.min(pct, 100)}%`, background: bg }} />
     </div>
   );
 }
 
-// ─── Stat card ────────────────────────────────────────────────────────────────
+// ─── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, sub, highlight }) {
   return (
     <div className={`stat-card ${highlight ? 'stat-card-highlight' : ''}`}>
@@ -59,25 +51,45 @@ function StatCard({ label, value, sub, highlight }) {
 
 // ─── Main Analytics Page ──────────────────────────────────────────────────────
 export default function AnalyticsPage() {
+  const [classes,        setClasses]        = useState([]);
+  const [selectedClass,  setSelectedClass]  = useState('');
   const [exams,          setExams]          = useState([]);
   const [selectedExamId, setSelectedExamId] = useState('');
   const [analytics,      setAnalytics]      = useState(null);
   const [aiAnalysis,     setAiAnalysis]     = useState('');
-  const [loadingExams,   setLoadingExams]   = useState(true);
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const [loadingExams,   setLoadingExams]   = useState(false);
   const [loadingData,    setLoadingData]    = useState(false);
   const [loadingAI,      setLoadingAI]      = useState(false);
   const [error,          setError]          = useState(null);
 
-  // Load exams on mount
+  // Load classes on mount
   useEffect(() => {
-    getAllExams()
+    getAllClasses()
+      .then(data => {
+        setClasses(data);
+        if (data.length > 0) setSelectedClass(String(data[0].id));
+      })
+      .catch(() => setError('Could not connect to backend.'))
+      .finally(() => setLoadingClasses(false));
+  }, []);
+
+  // Load exams when class changes
+  useEffect(() => {
+    if (!selectedClass) return;
+    setLoadingExams(true);
+    setExams([]);
+    setSelectedExamId('');
+    setAnalytics(null);
+    setAiAnalysis('');
+    getAllExams(selectedClass)
       .then(data => {
         setExams(data);
         if (data.length > 0) setSelectedExamId(String(data[0].id));
       })
-      .catch(() => setError('Could not connect to backend.'))
+      .catch(e => setError(e.message))
       .finally(() => setLoadingExams(false));
-  }, []);
+  }, [selectedClass]);
 
   // Load analytics when exam changes
   useEffect(() => {
@@ -86,7 +98,6 @@ export default function AnalyticsPage() {
     setAnalytics(null);
     setAiAnalysis('');
     setError(null);
-
     getExamAnalytics(selectedExamId)
       .then(setAnalytics)
       .catch(e => setError(e.message))
@@ -107,7 +118,9 @@ export default function AnalyticsPage() {
     }
   };
 
-  const stats = analytics?.statistics;
+  const stats             = analytics?.statistics;
+  const selectedClassData = classes.find(c => String(c.id) === selectedClass);
+  const selectedExam      = exams.find(e => String(e.id) === selectedExamId);
 
   return (
     <div className="analytics-page">
@@ -120,7 +133,6 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Error */}
       {error && (
         <div className="alert alert-error fade-up">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -131,27 +143,70 @@ export default function AnalyticsPage() {
         </div>
       )}
 
-      {/* Exam selector */}
+      {/* Class + Exam selectors */}
       <div className="analytics-controls fade-up fade-up-delay-1">
         <div className="field-group">
-          <label className="field-label">Select Exam</label>
+          <label className="field-label">Class</label>
+          {loadingClasses ? (
+            <div className="field-loading">Loading classes...</div>
+          ) : classes.length === 0 ? (
+            <div className="field-loading">No classes found.</div>
+          ) : (
+            <select className="field-input field-select"
+              value={selectedClass}
+              onChange={e => setSelectedClass(e.target.value)}>
+              {classes.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name} — {c.subject}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <div className="field-group">
+          <label className="field-label">Exam</label>
           {loadingExams ? (
             <div className="field-loading">Loading exams...</div>
+          ) : exams.length === 0 ? (
+            <div className="field-loading">No exams for this class yet.</div>
           ) : (
-            <select
-              className="field-input field-select"
+            <select className="field-input field-select"
               value={selectedExamId}
-              onChange={e => setSelectedExamId(e.target.value)}
-            >
+              onChange={e => setSelectedExamId(e.target.value)}>
               {exams.map(exam => (
                 <option key={exam.id} value={exam.id}>
-                  {exam.name} — {exam.subject}
+                  {exam.name}
                 </option>
               ))}
             </select>
           )}
         </div>
       </div>
+
+      {/* Info chip */}
+      {selectedClassData && selectedExam && (
+        <div className="analytics-info-chip fade-up">
+          <span className="aic-item">
+            <span className="aic-label">Class</span>
+            <span className="aic-val">{selectedClassData.name}</span>
+          </span>
+          <span className="aic-sep" />
+          <span className="aic-item">
+            <span className="aic-label">Exam</span>
+            <span className="aic-val">{selectedExam.name}</span>
+          </span>
+          {analytics && (
+            <>
+              <span className="aic-sep" />
+              <span className="aic-item">
+                <span className="aic-label">Graded</span>
+                <span className="aic-val">{analytics.total_graded} papers</span>
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       {loadingData && (
         <p className="analytics-loading fade-up">Loading analytics...</p>
@@ -168,39 +223,26 @@ export default function AnalyticsPage() {
         <>
           {/* Stat cards */}
           <div className="stats-grid fade-up fade-up-delay-1">
-            <StatCard
-              label="Students Graded"
-              value={analytics.total_graded}
-            />
+            <StatCard label="Students Graded" value={analytics.total_graded} />
             <StatCard
               label="Class Average"
               value={`${stats.average_score}/${analytics.max_score}`}
               sub={`${stats.average_percent}%`}
               highlight
             />
-            <StatCard
-              label="Highest Score"
-              value={`${stats.highest_score}/${analytics.max_score}`}
-            />
-            <StatCard
-              label="Lowest Score"
-              value={`${stats.lowest_score}/${analytics.max_score}`}
-            />
+            <StatCard label="Highest Score" value={`${stats.highest_score}/${analytics.max_score}`} />
+            <StatCard label="Lowest Score"  value={`${stats.lowest_score}/${analytics.max_score}`} />
             <StatCard
               label="Passed (≥75%)"
               value={stats.passed}
               sub={`${stats.pass_rate}% pass rate`}
               highlight={stats.pass_rate >= 75}
             />
-            <StatCard
-              label="Failed (<75%)"
-              value={stats.failed}
-            />
+            <StatCard label="Failed (<75%)" value={stats.failed} />
           </div>
 
           {/* Charts row */}
           <div className="charts-row fade-up fade-up-delay-2">
-            {/* Score distribution */}
             <BarChart
               data={analytics.distribution}
               title="Score Distribution"
@@ -209,7 +251,6 @@ export default function AnalyticsPage() {
               color="var(--accent)"
             />
 
-            {/* Per-question accuracy */}
             <div className="chart-card">
               <h3 className="chart-title">Per-Question Accuracy</h3>
               <div className="question-accuracy-list">
@@ -228,18 +269,11 @@ export default function AnalyticsPage() {
                       <AccuracyBar pct={q.accuracy_pct} />
                     </div>
                     <div className="qa-right">
-                      <span
-                        className={`qa-pct ${
-                          q.accuracy_pct >= 75 ? 'pct-pass'
-                          : q.accuracy_pct >= 50 ? 'pct-mid'
-                          : 'pct-fail'
-                        }`}
-                      >
-                        {q.accuracy_pct}%
-                      </span>
-                      <span className="qa-count">
-                        {q.correct_count}/{q.total_count}
-                      </span>
+                      <span className={`qa-pct ${
+                        q.accuracy_pct >= 75 ? 'pct-pass'
+                        : q.accuracy_pct >= 50 ? 'pct-mid' : 'pct-fail'
+                      }`}>{q.accuracy_pct}%</span>
+                      <span className="qa-count">{q.correct_count}/{q.total_count}</span>
                     </div>
                   </div>
                 ))}
@@ -247,7 +281,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* Student ranking */}
+          {/* Student rankings */}
           <div className="chart-card fade-up fade-up-delay-2">
             <h3 className="chart-title">Student Rankings</h3>
             <div className="ranking-table">
@@ -281,30 +315,20 @@ export default function AnalyticsPage() {
                   Groq (LLaMA 3) generates a summary of class performance and teaching recommendations.
                 </p>
               </div>
-              <button
-                className="btn btn-primary"
-                onClick={handleAIAnalysis}
-                disabled={loadingAI}
-              >
+              <button className="btn btn-primary" onClick={handleAIAnalysis} disabled={loadingAI}>
                 {loadingAI ? (
-                  <>
-                    <span className="btn-spinner">
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5"
-                          strokeDasharray="20" strokeDashoffset="10" strokeLinecap="round"/>
-                      </svg>
-                    </span>
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
+                  <><span className="btn-spinner">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1"/>
-                      <path d="M5 7l2 2 3-3" stroke="currentColor" strokeWidth="1.2"
-                        strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5"
+                        strokeDasharray="20" strokeDashoffset="10" strokeLinecap="round"/>
                     </svg>
-                    Generate Analysis
-                  </>
+                  </span>Analyzing...</>
+                ) : (
+                  <><svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1"/>
+                    <path d="M5 7l2 2 3-3" stroke="currentColor" strokeWidth="1.2"
+                      strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>Generate Analysis</>
                 )}
               </button>
             </div>

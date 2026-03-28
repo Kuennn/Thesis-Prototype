@@ -299,24 +299,6 @@
   transform: translateY(-1px);
 }
 
-.btn-danger {
-  background: var(--danger);
-  color: #fff;
-  border-color: var(--danger);
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #a3360b;
-  border-color: #a3360b;
-  transform: translateY(-1px);
-}
-
-.btn-sm {
-  padding: 5px 12px;
-  font-size: 0.78rem;
-  border-radius: 6px;
-}
-
 /* Exams list */
 .exams-loading,
 .exams-empty {
@@ -379,4 +361,96 @@
 .exam-card-id {
   font-size: 0.75rem;
   color: var(--ink-faint);
+}
+
+/* ─── Class selector row ──────────────────────────────────────────────────── */
+.class-selector-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.class-selector-row .field-group {
+  flex: 1;
+  min-width: 260px;
+}
+
+.field-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a5a52' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+.field-loading {
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.field-empty {
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  color: var(--danger);
+  background: rgba(193,68,14,0.06);
+  border: 1px solid rgba(193,68,14,0.2);
+  border-radius: var(--radius-sm);
+}
+
+.class-info-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--white);
+  border: 1px solid rgba(26,26,24,0.1);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-size: 0.82rem;
+  flex-shrink: 0;
+  margin-bottom: 1px;
+}
+
+.class-info-label {
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.class-info-val { color: var(--ink); font-weight: 600; }
+
+.class-info-sep {
+  width: 1px;
+  height: 14px;
+  background: rgba(26,26,24,0.12);
+}
+
+/* ─── No class banner ─────────────────────────────────────────────────────── */
+.no-class-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  background: rgba(234,159,39,0.08);
+  border: 1px solid rgba(234,159,39,0.3);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  color: #7a5200;
+}
+
+/* ─── Exam form class label ───────────────────────────────────────────────── */
+.exam-form-class {
+  font-size: 0.82rem;
+  color: var(--accent);
+  font-weight: 500;
+  background: var(--accent-glow);
+  padding: 2px 10px;
+  border-radius: 100px;
+  margin-top: 4px;
+  display: inline-block;
 }

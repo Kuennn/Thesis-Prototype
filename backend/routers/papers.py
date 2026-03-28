@@ -1,5 +1,6 @@
 # routers/papers.py
 # Endpoints for uploading and managing student answer sheet images
+# Phase 5 update: Upload now accepts student_id to link paper to enrolled student
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
@@ -7,7 +8,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
 from database.database import get_db
-from models.models import StudentPaper, StudentAnswer, Exam, Question, PaperStatus
+from models.models import StudentPaper, StudentAnswer, Exam, Question, Student, PaperStatus
 from PIL import Image
 import shutil, os, uuid
 from datetime import datetime
@@ -20,7 +21,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
 
-# ─── Pydantic Schemas ─────────────────────────────────────────────────────────
+# ─── Schemas ──────────────────────────────────────────────────────────────────
 
 class AnswerOut(BaseModel):
     id:             int
@@ -36,6 +37,7 @@ class AnswerOut(BaseModel):
 class PaperOut(BaseModel):
     id:           int
     exam_id:      int
+    student_id:   Optional[int]
     student_name: Optional[str]
     image_path:   str
     status:       str
@@ -51,55 +53,52 @@ class TeacherOverride(BaseModel):
     teacher_score: float
     teacher_note:  Optional[str] = None
 
+
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
-@router.post("/upload", summary="Upload one or more student answer sheet images")
+@router.post("/upload", summary="Upload student answer sheet images")
 async def upload_papers(
-    exam_id:      int             = Form(...),
-    student_name: Optional[str]   = Form(None),
+    exam_id:      int              = Form(...),
+    student_name: Optional[str]    = Form(None),
+    student_id:   Optional[int]    = Form(None),
     papers:       List[UploadFile] = File(...),
-    db:           Session         = Depends(get_db),
+    db:           Session          = Depends(get_db),
 ):
-    """
-    Accepts image files of student answer sheets.
-    Saves them to disk and records them in the database with status 'uploaded'.
-    OCR and grading will be added here later.
-    """
-    # Verify exam exists
     exam = db.query(Exam).filter(Exam.id == exam_id).first()
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
 
+    # Resolve student name from student_id if provided
+    resolved_name = student_name
+    if student_id:
+        student = db.query(Student).filter(Student.id == student_id).first()
+        if student:
+            resolved_name = f"{student.first_name} {student.last_name}"
+
     saved_papers = []
 
     for upload in papers:
-        # Validate file type
         if upload.content_type not in ALLOWED_TYPES:
             raise HTTPException(
                 status_code=400,
                 detail=f"File '{upload.filename}' is not a supported image type. Use JPG, PNG, or WEBP."
             )
 
-        # Read file content
         content = await upload.read()
 
-        # Validate file size
         if len(content) > MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=400,
                 detail=f"File '{upload.filename}' exceeds the 20MB size limit."
             )
 
-        # Generate a unique filename to avoid collisions
-        ext       = os.path.splitext(upload.filename)[1].lower() or ".jpg"
+        ext         = os.path.splitext(upload.filename)[1].lower() or ".jpg"
         unique_name = f"{uuid.uuid4().hex}{ext}"
         save_path   = os.path.join(UPLOAD_DIR, unique_name)
 
-        # Save the image file to disk
         with open(save_path, "wb") as f:
             f.write(content)
 
-        # Validate it's a real image using Pillow
         try:
             with Image.open(save_path) as img:
                 img.verify()
@@ -110,17 +109,16 @@ async def upload_papers(
                 detail=f"File '{upload.filename}' could not be read as an image."
             )
 
-        # Save record to database
         paper = StudentPaper(
             exam_id      = exam_id,
-            student_name = student_name or upload.filename,
+            student_id   = student_id,
+            student_name = resolved_name or upload.filename,
             image_path   = save_path,
             status       = PaperStatus.uploaded,
         )
         db.add(paper)
         db.flush()
 
-        # Create empty answer slots for each question in the exam
         questions = db.query(Question).filter(Question.exam_id == exam_id).all()
         for q in questions:
             answer = StudentAnswer(paper_id=paper.id, question_id=q.id)
@@ -131,25 +129,45 @@ async def upload_papers(
             "filename":     upload.filename,
             "saved_as":     unique_name,
             "student_name": paper.student_name,
+            "student_id":   student_id,
             "status":       paper.status,
         })
 
     db.commit()
 
     return {
-        "message": f"{len(saved_papers)} paper(s) uploaded successfully for exam '{exam.name}'",
+        "message": f"{len(saved_papers)} paper(s) uploaded for exam '{exam.name}'",
         "exam_id": exam_id,
         "papers":  saved_papers,
     }
 
 
-@router.get("/exam/{exam_id}", response_model=List[PaperOut], summary="Get all papers for an exam")
+@router.get("/exam/{exam_id}", summary="Get all papers for an exam")
 def get_papers_by_exam(exam_id: int, db: Session = Depends(get_db)):
     papers = db.query(StudentPaper).filter(StudentPaper.exam_id == exam_id).all()
-    return papers
+    result = []
+    for p in papers:
+        student_name = p.student_name
+        if p.student_id and not student_name:
+            student = db.query(Student).filter(Student.id == p.student_id).first()
+            if student:
+                student_name = f"{student.first_name} {student.last_name}"
+        result.append({
+            "id":           p.id,
+            "exam_id":      p.exam_id,
+            "student_id":   p.student_id,
+            "student_name": student_name,
+            "image_path":   p.image_path,
+            "status":       p.status,
+            "total_score":  p.total_score,
+            "max_score":    p.max_score,
+            "uploaded_at":  p.uploaded_at,
+            "graded_at":    p.graded_at,
+        })
+    return result
 
 
-@router.get("/{paper_id}", response_model=PaperOut, summary="Get one paper by ID")
+@router.get("/{paper_id}", summary="Get one paper by ID")
 def get_paper(paper_id: int, db: Session = Depends(get_db)):
     paper = db.query(StudentPaper).filter(StudentPaper.id == paper_id).first()
     if not paper:
@@ -166,7 +184,7 @@ def override_score(
 ):
     answer = db.query(StudentAnswer).filter(
         StudentAnswer.id       == answer_id,
-        StudentAnswer.paper_id == paper_id
+        StudentAnswer.paper_id == paper_id,
     ).first()
     if not answer:
         raise HTTPException(status_code=404, detail="Answer not found")
@@ -174,25 +192,21 @@ def override_score(
     answer.teacher_score = payload.teacher_score
     answer.teacher_note  = payload.teacher_note
 
-    # Recalculate paper total score using teacher overrides where available
+    # Recalculate total score
     all_answers = db.query(StudentAnswer).filter(
         StudentAnswer.paper_id == paper_id
     ).all()
-
-    total = 0.0
-    for a in all_answers:
-        # Use teacher score if overridden, otherwise use AI score
-        final = a.teacher_score if a.teacher_score is not None else a.score
-        if final is not None:
-            total += final
-
+    total = sum(
+        (a.teacher_score if a.teacher_score is not None else a.score or 0)
+        for a in all_answers
+    )
     paper = db.query(StudentPaper).filter(StudentPaper.id == paper_id).first()
     if paper:
         paper.total_score = round(total, 2)
 
     db.commit()
     db.refresh(answer)
-    return {"message": "Score overridden successfully", "answer_id": answer_id, "new_total": round(total, 2)}
+    return {"message": "Score overridden", "answer_id": answer_id, "new_total": round(total, 2)}
 
 
 @router.delete("/{paper_id}", summary="Delete a paper and its image")
@@ -200,11 +214,8 @@ def delete_paper(paper_id: int, db: Session = Depends(get_db)):
     paper = db.query(StudentPaper).filter(StudentPaper.id == paper_id).first()
     if not paper:
         raise HTTPException(status_code=404, detail="Paper not found")
-
-    # Delete image file from disk
     if os.path.exists(paper.image_path):
         os.remove(paper.image_path)
-
     db.delete(paper)
     db.commit()
     return {"message": "Paper deleted successfully"}

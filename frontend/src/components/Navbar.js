@@ -2,19 +2,19 @@ import React from 'react';
 import './Navbar.css';
 
 const NAV_ITEMS = [
-  { id: 'upload',      label: 'Upload Papers'  },
-  { id: 'keys',        label: 'Answer Keys'    },
-  { id: 'results',     label: 'Results'        },
-  { id: 'analytics',   label: 'Analytics'      },
-  { id: 'answersheet', label: 'Answer Sheets'  },
+  { id: 'classes',     label: 'Classes'       },
+  { id: 'upload',      label: 'Upload Papers' },
+  { id: 'keys',        label: 'Answer Keys'   },
+  { id: 'results',     label: 'Results'       },
+  { id: 'analytics',   label: 'Analytics'     },
+  { id: 'answersheet', label: 'Answer Sheets' },
 ];
 
 export default function Navbar({ activePage, setActivePage }) {
   return (
     <header className="navbar">
       <div className="navbar-inner">
-        {/* Logo / Brand */}
-        <button className="navbar-brand" onClick={() => setActivePage('upload')}>
+        <button className="navbar-brand" onClick={() => setActivePage('classes')}>
           <span className="brand-icon" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
               <rect x="2" y="2" width="18" height="18" rx="4" stroke="currentColor" strokeWidth="1.5"/>
@@ -26,7 +26,6 @@ export default function Navbar({ activePage, setActivePage }) {
           <span className="brand-name">ExamCheck <em>AI</em></span>
         </button>
 
-        {/* Nav links */}
         <nav className="navbar-nav" aria-label="Main navigation">
           {NAV_ITEMS.map(item => (
             <button
@@ -40,7 +39,6 @@ export default function Navbar({ activePage, setActivePage }) {
           ))}
         </nav>
 
-        {/* Right side badge */}
         <div className="navbar-badge">
           <span className="status-dot" aria-hidden="true" />
           Teacher Mode

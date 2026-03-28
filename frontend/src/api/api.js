@@ -1,8 +1,117 @@
 // src/api/api.js
 // Central place for all backend API calls
-// If your backend URL changes, you only need to update it here
 
 const BASE_URL = 'http://localhost:8000';
+
+// ─── Classes ──────────────────────────────────────────────────────────────────
+
+export async function getAllClasses() {
+  const res = await fetch(`${BASE_URL}/api/classes/`);
+  if (!res.ok) throw new Error('Failed to fetch classes');
+  return res.json();
+}
+
+export async function getClass(classId) {
+  const res = await fetch(`${BASE_URL}/api/classes/${classId}`);
+  if (!res.ok) throw new Error('Class not found');
+  return res.json();
+}
+
+export async function createClass(data) {
+  const res = await fetch(`${BASE_URL}/api/classes/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to create class'); }
+  return res.json();
+}
+
+export async function updateClass(classId, data) {
+  const res = await fetch(`${BASE_URL}/api/classes/${classId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to update class'); }
+  return res.json();
+}
+
+export async function deleteClass(classId) {
+  const res = await fetch(`${BASE_URL}/api/classes/${classId}`, { method: 'DELETE' });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to delete class'); }
+  return res.json();
+}
+
+export async function getClassStudents(classId) {
+  const res = await fetch(`${BASE_URL}/api/classes/${classId}/students`);
+  if (!res.ok) throw new Error('Failed to fetch students');
+  return res.json();
+}
+
+export async function enrollStudent(classId, studentId) {
+  const res = await fetch(`${BASE_URL}/api/classes/${classId}/enroll/${studentId}`, { method: 'POST' });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to enroll student'); }
+  return res.json();
+}
+
+export async function unenrollStudent(classId, studentId) {
+  const res = await fetch(`${BASE_URL}/api/classes/${classId}/enroll/${studentId}`, { method: 'DELETE' });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to remove student'); }
+  return res.json();
+}
+
+export async function getClassPerformance(classId) {
+  const res = await fetch(`${BASE_URL}/api/classes/${classId}/performance`);
+  if (!res.ok) throw new Error('Failed to fetch performance');
+  return res.json();
+}
+
+// ─── Students ─────────────────────────────────────────────────────────────────
+
+export async function getAllStudents() {
+  const res = await fetch(`${BASE_URL}/api/students/`);
+  if (!res.ok) throw new Error('Failed to fetch students');
+  return res.json();
+}
+
+export async function getStudent(studentId) {
+  const res = await fetch(`${BASE_URL}/api/students/${studentId}`);
+  if (!res.ok) throw new Error('Student not found');
+  return res.json();
+}
+
+export async function createStudent(data) {
+  const res = await fetch(`${BASE_URL}/api/students/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to create student'); }
+  return res.json();
+}
+
+export async function updateStudent(studentId, data) {
+  const res = await fetch(`${BASE_URL}/api/students/${studentId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to update student'); }
+  return res.json();
+}
+
+export async function deleteStudent(studentId) {
+  const res = await fetch(`${BASE_URL}/api/students/${studentId}`, { method: 'DELETE' });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to delete student'); }
+  return res.json();
+}
+
+export async function searchStudents(query) {
+  const res = await fetch(`${BASE_URL}/api/students/search/${encodeURIComponent(query)}`);
+  if (!res.ok) throw new Error('Search failed');
+  return res.json();
+}
 
 // ─── Exams ────────────────────────────────────────────────────────────────────
 
@@ -12,15 +121,15 @@ export async function createExam(examData) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(examData),
   });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.detail || 'Failed to create exam');
-  }
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to create exam'); }
   return res.json();
 }
 
-export async function getAllExams() {
-  const res = await fetch(`${BASE_URL}/api/exams/`);
+export async function getAllExams(classId) {
+  const url = classId
+    ? `${BASE_URL}/api/exams/?class_id=${classId}`
+    : `${BASE_URL}/api/exams/`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch exams');
   return res.json();
 }
@@ -32,41 +141,26 @@ export async function getExam(examId) {
 }
 
 export async function deleteExam(examId) {
-  const res = await fetch(`${BASE_URL}/api/exams/${examId}`, {
-    method: 'DELETE',
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.detail || 'Failed to delete exam');
-  }
+  const res = await fetch(`${BASE_URL}/api/exams/${examId}`, { method: 'DELETE' });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to delete exam'); }
   return res.json();
 }
 
 // ─── Papers ───────────────────────────────────────────────────────────────────
 
-export async function uploadPapers(examId, files, onFileProgress) {
+export async function uploadPapers(examId, files, onFileProgress, studentId) {
   const results = [];
-
   for (let i = 0; i < files.length; i++) {
     const entry = files[i];
     onFileProgress(entry.id, 'uploading');
-
     const formData = new FormData();
     formData.append('exam_id', examId);
     formData.append('student_name', entry.file.name.replace(/\.[^.]+$/, ''));
+    if (studentId) formData.append('student_id', studentId);
     formData.append('papers', entry.file);
-
     try {
-      const res = await fetch(`${BASE_URL}/api/papers/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || 'Upload failed');
-      }
-
+      const res = await fetch(`${BASE_URL}/api/papers/upload`, { method: 'POST', body: formData });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Upload failed'); }
       const data = await res.json();
       onFileProgress(entry.id, 'done');
       results.push({ ...data, fileId: entry.id });
@@ -75,7 +169,6 @@ export async function uploadPapers(examId, files, onFileProgress) {
       results.push({ error: err.message, fileId: entry.id });
     }
   }
-
   return results;
 }
 
@@ -86,13 +179,8 @@ export async function getPapersByExam(examId) {
 }
 
 export async function deletePaper(paperId) {
-  const res = await fetch(`${BASE_URL}/api/papers/${paperId}`, {
-    method: 'DELETE',
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.detail || 'Failed to delete paper');
-  }
+  const res = await fetch(`${BASE_URL}/api/papers/${paperId}`, { method: 'DELETE' });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to delete paper'); }
   return res.json();
 }
 
@@ -102,28 +190,17 @@ export async function overrideScore(paperId, answerId, teacherScore, teacherNote
   const res = await fetch(`${BASE_URL}/api/papers/${paperId}/override/${answerId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      teacher_score: teacherScore,
-      teacher_note:  teacherNote || null,
-    }),
+    body: JSON.stringify({ teacher_score: teacherScore, teacher_note: teacherNote || null }),
   });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.detail || 'Override failed');
-  }
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Override failed'); }
   return res.json();
 }
 
 // ─── OCR ──────────────────────────────────────────────────────────────────────
 
 export async function processPaper(paperId) {
-  const res = await fetch(`${BASE_URL}/api/ocr/process/${paperId}`, {
-    method: 'POST',
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.detail || 'OCR processing failed');
-  }
+  const res = await fetch(`${BASE_URL}/api/ocr/process/${paperId}`, { method: 'POST' });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'OCR processing failed'); }
   return res.json();
 }
 
@@ -150,9 +227,7 @@ export async function getExamAnalytics(examId) {
 }
 
 export async function getAIAnalysis(examId) {
-  const res = await fetch(`${BASE_URL}/api/analytics/exam/${examId}/ai-analysis`, {
-    method: 'POST',
-  });
+  const res = await fetch(`${BASE_URL}/api/analytics/exam/${examId}/ai-analysis`, { method: 'POST' });
   if (!res.ok) throw new Error('Failed to get AI analysis');
   return res.json();
 }
@@ -160,21 +235,14 @@ export async function getAIAnalysis(examId) {
 // ─── OMR / Answer Sheets ──────────────────────────────────────────────────────
 
 export async function generateAnswerSheet(examId) {
-  const res = await fetch(`${BASE_URL}/api/omr/generate/${examId}`, {
-    method: 'POST',
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.detail || 'Failed to generate answer sheet');
-  }
+  const res = await fetch(`${BASE_URL}/api/omr/generate/${examId}`, { method: 'POST' });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to generate answer sheet'); }
   return res.json();
 }
 
 export async function downloadAnswerSheet(examId, examName) {
   const res = await fetch(`${BASE_URL}/api/omr/sheet/${examId}`);
   if (!res.ok) throw new Error('Failed to download answer sheet');
-
-  // Trigger browser download
   const blob = await res.blob();
   const url  = window.URL.createObjectURL(blob);
   const a    = document.createElement('a');
@@ -187,23 +255,13 @@ export async function downloadAnswerSheet(examId, examName) {
 }
 
 export async function scanQRCode(paperId) {
-  const res = await fetch(`${BASE_URL}/api/omr/scan-qr/${paperId}`, {
-    method: 'POST',
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.detail || 'QR scan failed');
-  }
+  const res = await fetch(`${BASE_URL}/api/omr/scan-qr/${paperId}`, { method: 'POST' });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'QR scan failed'); }
   return res.json();
 }
 
 export async function detectBubbles(paperId) {
-  const res = await fetch(`${BASE_URL}/api/omr/detect-bubbles/${paperId}`, {
-    method: 'POST',
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.detail || 'Bubble detection failed');
-  }
+  const res = await fetch(`${BASE_URL}/api/omr/detect-bubbles/${paperId}`, { method: 'POST' });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Bubble detection failed'); }
   return res.json();
 }

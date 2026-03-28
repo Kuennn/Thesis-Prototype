@@ -1,0 +1,197 @@
+OCR Accuracy Comparison Log
+Image: uploaded_papers\9588ae2ce7d24707b18075afa476c59c.jpg
+Regions detected: 32
+============================================================
+
+Region 1:
+  EasyOCR : Midterm Exam
+  TrOCR   : Midterm Exam
+  Selected: Midterm Exam
+  Confidence: 0.8
+
+Region 2:
+  EasyOCR : Mema
+  TrOCR   : mema
+  Selected: mema
+  Confidence: 1.0
+
+Region 3:
+  EasyOCR : Ong
+  TrOCR   : long
+  Selected: long
+  Confidence: 1.0
+
+Region 4:
+  EasyOCR : Kuen
+  TrOCR   : Kuen
+  Selected: Kuen
+  Confidence: 1.0
+
+Region 5:
+  EasyOCR : March 28, 2026
+  TrOCR   : March 28 , 2026
+  Selected: March 28 , 2026
+  Confidence: 0.841
+
+Region 6:
+  EasyOCR : Name:
+  TrOCR   : name :
+  Selected: name :
+  Confidence: 0.999
+
+Region 7:
+  EasyOCR : Date:
+  TrOCR   : date :
+  Selected: date :
+  Confidence: 1.0
+
+Region 8:
+  EasyOCR : INSTRUCTIONS: Fill bubbles completely for MCITIF. Write clearly in lined areas
+  TrOCR   : INSTRUCTIONS : Fill bubbles completely for MCTYF. Write clearly in lined areas .
+  Selected: INSTRUCTIONS : Fill bubbles completely for MCTYF. Write clearly in lined areas .
+  Confidence: 0.695
+
+Region 9:
+  EasyOCR : False
+  TrOCR   : false
+  Selected: false
+  Confidence: 1.0
+
+Region 10:
+  EasyOCR : 3
+  TrOCR   : 3.
+  Selected: 3.
+  Confidence: 1.0
+
+Region 11:
+  EasyOCR : True
+  TrOCR   : True
+  Selected: True
+  Confidence: 1.0
+
+Region 12:
+  EasyOCR : True
+  TrOCR   : True
+  Selected: True
+  Confidence: 1.0
+
+Region 13:
+  EasyOCR : False
+  TrOCR   : i False
+  Selected: i False
+  Confidence: 0.789
+
+Region 14:
+  EasyOCR : Answer: CPU
+  TrOCR   : Answer . CPU
+  Selected: Answer . CPU
+  Confidence: 0.97
+
+Region 15:
+  EasyOCR : 5.
+  TrOCR   : 5-
+  Selected: 5-
+  Confidence: 0.987
+
+Region 16:
+  EasyOCR : Operating System
+  TrOCR   : Operating System .
+  Selected: Operating System .
+  Confidence: 0.906
+
+Region 17:
+  EasyOCR : Answer:
+  TrOCR   : answer .
+  Selected: answer .
+  Confidence: 1.0
+
+Region 18:
+  EasyOCR : 6.
+  TrOCR   : 6-
+  Selected: 6-
+  Confidence: 0.771
+
+Region 19:
+  EasyOCR : Essay (5.0 pts)
+  TrOCR   : Essay 15.0 pts )
+  Selected: Essay 15.0 pts )
+  Confidence: 0.978
+
+Region 20:
+  EasyOCR : 7
+  TrOCR   : 7-
+  Selected: 7-
+  Confidence: 1.0
+
+Region 21:
+  EasyOCR : Hardware refers to the physical and tangible components of a computer that you can
+  TrOCR   : Hardware refers to the physical and tangible components of a computer that you can
+  Selected: Hardware refers to the physical and tangible components of a computer that you can
+  Confidence: 0.679
+
+Region 22:
+  EasyOCR : see and touch. Examples of hardware include the CPU, hard drive, monitor; keyboard,
+  TrOCR   : see and touch . Examples of hardware include the CPU , hard drive , monitor , keyboard ,
+  Selected: see and touch . Examples of hardware include the CPU , hard drive , monitor , keyboard ,
+  Confidence: 0.722
+
+Region 23:
+  EasyOCR : and RAM: Software on the other hand refers to the set of instructions or programs
+  TrOCR   : and RAM . Software on the other hand refers to the set of instructions or programs
+  Selected: and RAM . Software on the other hand refers to the set of instructions or programs
+  Confidence: 0.909
+
+Region 24:
+  EasyOCR : that tell the hardware what to do. Examples include the Windows operating system,
+  TrOCR   : that tell the hardware what to do . Examples include the Windows operating system ,
+  Selected: that tell the hardware what to do . Examples include the Windows operating system ,
+  Confidence: 0.714
+
+Region 25:
+  EasyOCR : Microsoft Word, and Google Chrome: Hardware and software are interdependent
+  TrOCR   : Microsoft Word , and Google Chrome . Hardware and software are interdependent
+  Selected: Microsoft Word , and Google Chrome . Hardware and software are interdependent
+  Confidence: 0.714
+
+Region 26:
+  EasyOCR : hardware provides the processing power and physical components while software
+  TrOCR   : hardware provides the processing power and physical components while software
+  Selected: hardware provides the processing power and physical components while software
+  Confidence: 0.801
+
+Region 27:
+  EasyOCR : provides the logic and instructions needed to perform tasks.
+  TrOCR   : provides the logic and instructions needed to perform tasks .
+  Selected: provides the logic and instructions needed to perform tasks .
+  Confidence: 0.728
+
+Region 28:
+  EasyOCR : Score_
+  TrOCR   : score :
+  Selected: score :
+  Confidence: 0.777
+
+Region 29:
+  EasyOCR : 5.0
+  TrOCR   : 5.50
+  Selected: 5.50
+  Confidence: 0.999
+
+Region 30:
+  EasyOCR : ExamCheck Al
+  TrOCR   : examCheck Al.
+  Selected: examCheck Al.
+  Confidence: 0.903
+
+Region 31:
+  EasyOCR : Automated Examination System
+  TrOCR   : Automated Examination System
+  Selected: Automated Examination System
+  Confidence: 0.999
+
+Region 32:
+  EasyOCR : Exam ID:
+  TrOCR   : exam ID :
+  Selected: exam ID :
+  Confidence: 0.999
+

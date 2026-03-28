@@ -1,0 +1,185 @@
+OCR Accuracy Comparison Log
+Image: uploaded_papers\e2dbb9cd83db4953918183dade5c1d3f.jpg
+Regions detected: 30
+============================================================
+
+Region 1:
+  EasyOCR : Computer Fundamentals
+  TrOCR   : Computer Fundamentals
+  Selected: Computer Fundamentals
+  Confidence: 0.919
+
+Region 2:
+  EasyOCR : Unit Test
+  TrOCR   : Unit Test
+  Selected: Unit Test
+  Confidence: 0.998
+
+Region 3:
+  EasyOCR : Introduction to Computer Science
+  TrOCR   : Introduction to Computer Science
+  Selected: Introduction to Computer Science
+  Confidence: 0.855
+
+Region 4:
+  EasyOCR : Ong
+  TrOCR   : long
+  Selected: long
+  Confidence: 0.978
+
+Region 5:
+  EasyOCR : March 28,2026
+  TrOCR   : March 28 , 2026 .
+  Selected: March 28 , 2026 .
+  Confidence: 0.696
+
+Region 6:
+  EasyOCR : Kuen
+  TrOCR   : Kuen
+  Selected: Kuen
+  Confidence: 1.0
+
+Region 7:
+  EasyOCR : Name:
+  TrOCR   : name :
+  Selected: name :
+  Confidence: 0.999
+
+Region 8:
+  EasyOCR : Date:
+  TrOCR   : date :
+  Selected: date :
+  Confidence: 0.99
+
+Region 9:
+  EasyOCR : INSTRUCTIONS: Fill bubbles completely for MCITF. Write clearly in lired areas
+  TrOCR   : INSTRUCTIONS : Fill bubbles completely for MCTYF . Write clearly in lined areas .
+  Selected: INSTRUCTIONS : Fill bubbles completely for MCTYF . Write clearly in lined areas .
+  Confidence: 0.874
+
+Region 10:
+  EasyOCR : Tru
+  TrOCR   : i True
+  Selected: i True
+  Confidence: 0.996
+
+Region 11:
+  EasyOCR : False
+  TrOCR   : i False
+  Selected: i False
+  Confidence: 0.887
+
+Region 12:
+  EasyOCR : 3
+  TrOCR   : 3.
+  Selected: 3.
+  Confidence: 1.0
+
+Region 13:
+  EasyOCR : True
+  TrOCR   : i True
+  Selected: i True
+  Confidence: 0.821
+
+Region 14:
+  EasyOCR : False
+  TrOCR   : i False
+  Selected: i False
+  Confidence: 0.938
+
+Region 15:
+  EasyOCR : CPU
+  TrOCR   : cpu
+  Selected: cpu
+  Confidence: 1.0
+
+Region 16:
+  EasyOCR : Answer
+  TrOCR   : answer .
+  Selected: answer .
+  Confidence: 0.742
+
+Region 17:
+  EasyOCR : 5.
+  TrOCR   : 5.
+  Selected: 5.
+  Confidence: 0.961
+
+Region 18:
+  EasyOCR : Answer: Application
+  TrOCR   : Answer . Application
+  Selected: Answer . Application
+  Confidence: 0.579
+
+Region 19:
+  EasyOCR : 6
+  TrOCR   : 6.
+  Selected: 6.
+  Confidence: 1.0
+
+Region 20:
+  EasyOCR : Essay (5.0 pts)
+  TrOCR   : Essay 15.0 pts ) .
+  Selected: Essay 15.0 pts ) .
+  Confidence: 0.781
+
+Region 21:
+  EasyOCR : Hardware refers to the physical parts of a computer_like the monitor; keyboard,
+  TrOCR   : Hardware refers to the physical parts of a computer like the monitor , keyboard ,
+  Selected: Hardware refers to the physical parts of a computer like the monitor , keyboard ,
+  Confidence: 0.712
+
+Region 22:
+  EasyOCR : They
+  TrOCR   : They
+  Selected: They
+  Confidence: 0.999
+
+Region 23:
+  EasyOCR : and CPU. Software are programs like Windows and Microsoft Word:
+  TrOCR   : and CPU . Software are programs like Windows and Microsoft Word .
+  Selected: and CPU . Software are programs like Windows and Microsoft Word .
+  Confidence: 0.671
+
+Region 24:
+  EasyOCR : work
+  TrOCR   : work
+  Selected: work
+  Confidence: 1.0
+
+Region 25:
+  EasyOCR : together because software needs hardware to run_
+  TrOCR   : together because software needs hardware to run .
+  Selected: together because software needs hardware to run .
+  Confidence: 0.718
+
+Region 26:
+  EasyOCR : 5.0
+  TrOCR   : 15.50
+  Selected: 15.50
+  Confidence: 1.0
+
+Region 27:
+  EasyOCR : Score:
+  TrOCR   : score . .
+  Selected: score . .
+  Confidence: 0.762
+
+Region 28:
+  EasyOCR : Exam ID:
+  TrOCR   : exam ID.
+  Selected: exam ID.
+  Confidence: 0.934
+
+Region 29:
+  EasyOCR : ExamCheck Al _
+  TrOCR   : examCheck Al-
+  Selected: examCheck Al-
+  Confidence: 0.563
+
+Region 30:
+  EasyOCR : Automated Examination System
+  TrOCR   : Automated Examination System
+  Selected: Automated Examination System
+  Confidence: 0.979
+

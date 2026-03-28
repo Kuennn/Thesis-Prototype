@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllExams, generateAnswerSheet, downloadAnswerSheet } from '../api/api';
+import { getAllClasses, getAllExams, generateAnswerSheet, downloadAnswerSheet } from '../api/api';
 import './AnswerSheetPage.css';
 
 // ─── Step Indicator ───────────────────────────────────────────────────────────
@@ -30,16 +30,13 @@ function StepIndicator({ current }) {
 
 // ─── Exam Card ────────────────────────────────────────────────────────────────
 function ExamCard({ exam, selected, onClick }) {
-  const mcCount   = exam.questions?.filter(q => q.question_type === 'multiple_choice').length || 0;
-  const tfCount   = exam.questions?.filter(q => q.question_type === 'true_or_false').length || 0;
-  const idCount   = exam.questions?.filter(q => q.question_type === 'identification').length || 0;
-  const essayCount = exam.questions?.filter(q => q.question_type === 'essay').length || 0;
+  const mcCount    = exam.questions?.filter(q => q.question_type === 'multiple_choice').length || 0;
+  const tfCount    = exam.questions?.filter(q => q.question_type === 'true_or_false').length   || 0;
+  const idCount    = exam.questions?.filter(q => q.question_type === 'identification').length   || 0;
+  const essayCount = exam.questions?.filter(q => q.question_type === 'essay').length            || 0;
 
   return (
-    <div
-      className={`exam-select-card ${selected ? 'selected' : ''}`}
-      onClick={onClick}
-    >
+    <div className={`exam-select-card ${selected ? 'selected' : ''}`} onClick={onClick}>
       <div className="exam-select-indicator">
         {selected && (
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -53,9 +50,9 @@ function ExamCard({ exam, selected, onClick }) {
         <div className="exam-select-subject">{exam.subject}</div>
       </div>
       <div className="exam-select-types">
-        {mcCount > 0    && <span className="type-chip chip-mc">MC ×{mcCount}</span>}
-        {tfCount > 0    && <span className="type-chip chip-tf">T/F ×{tfCount}</span>}
-        {idCount > 0    && <span className="type-chip chip-id">ID ×{idCount}</span>}
+        {mcCount    > 0 && <span className="type-chip chip-mc">MC ×{mcCount}</span>}
+        {tfCount    > 0 && <span className="type-chip chip-tf">T/F ×{tfCount}</span>}
+        {idCount    > 0 && <span className="type-chip chip-id">ID ×{idCount}</span>}
         {essayCount > 0 && <span className="type-chip chip-essay">Essay ×{essayCount}</span>}
       </div>
     </div>
@@ -70,7 +67,6 @@ function QuestionPreview({ questions }) {
     identification:  'ID',
     essay:           'Essay',
   };
-
   return (
     <div className="question-preview">
       <div className="qp-header">
@@ -102,7 +98,6 @@ function GeneratedCard({ exam, result, onDownload, downloading }) {
           <path d="M21 25l1.5 1.5L25 23" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
-
       <div className="generated-card-info">
         <div className="generated-card-title">{exam.name}</div>
         <div className="generated-card-meta">
@@ -113,13 +108,8 @@ function GeneratedCard({ exam, result, onDownload, downloading }) {
           <span className="qr-token">QR: {result.qr_token?.slice(0, 8)}…</span>
         </div>
       </div>
-
       <div className="generated-card-actions">
-        <button
-          className="btn btn-primary"
-          onClick={onDownload}
-          disabled={downloading}
-        >
+        <button className="btn btn-primary" onClick={onDownload} disabled={downloading}>
           {downloading ? (
             <>
               <span className="btn-spinner">
@@ -147,43 +137,54 @@ function GeneratedCard({ exam, result, onDownload, downloading }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function AnswerSheetPage() {
-  const [exams,         setExams]         = useState([]);
-  const [selectedExam,  setSelectedExam]  = useState(null);
-  const [loading,       setLoading]       = useState(true);
-  const [generating,    setGenerating]    = useState(false);
-  const [downloading,   setDownloading]   = useState(false);
-  const [result,        setResult]        = useState(null);
-  const [error,         setError]         = useState(null);
-  const [step,          setStep]          = useState(0);
+  const [classes,        setClasses]        = useState([]);
+  const [selectedClass,  setSelectedClass]  = useState('');
+  const [exams,          setExams]          = useState([]);
+  const [selectedExam,   setSelectedExam]   = useState(null);
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const [loadingExams,   setLoadingExams]   = useState(false);
+  const [generating,     setGenerating]     = useState(false);
+  const [downloading,    setDownloading]    = useState(false);
+  const [result,         setResult]         = useState(null);
+  const [error,          setError]          = useState(null);
 
+  // Load classes on mount
   useEffect(() => {
-    getAllExams()
+    getAllClasses()
       .then(data => {
-        setExams(data);
-        setLoading(false);
+        setClasses(data);
+        if (data.length > 0) setSelectedClass(String(data[0].id));
       })
-      .catch(() => {
-        setError('Could not load exams. Is the backend running?');
-        setLoading(false);
-      });
+      .catch(() => setError('Could not load classes. Is the backend running?'))
+      .finally(() => setLoadingClasses(false));
   }, []);
+
+  // Load exams when class changes
+  useEffect(() => {
+    if (!selectedClass) return;
+    setLoadingExams(true);
+    setExams([]);
+    setSelectedExam(null);
+    setResult(null);
+    getAllExams(selectedClass)
+      .then(setExams)
+      .catch(() => setError('Could not load exams.'))
+      .finally(() => setLoadingExams(false));
+  }, [selectedClass]);
 
   const handleSelectExam = (exam) => {
     setSelectedExam(exam);
     setResult(null);
     setError(null);
-    setStep(0);
   };
 
   const handleGenerate = async () => {
     if (!selectedExam) return;
     setGenerating(true);
     setError(null);
-
     try {
       const data = await generateAnswerSheet(selectedExam.id);
       setResult(data);
-      setStep(2);
     } catch (err) {
       setError(err.message || 'Failed to generate answer sheet.');
     } finally {
@@ -204,6 +205,7 @@ export default function AnswerSheetPage() {
   };
 
   const currentStep = result ? 2 : selectedExam ? 1 : 0;
+  const selectedClassData = classes.find(c => String(c.id) === selectedClass);
 
   return (
     <div className="answer-sheet-page">
@@ -232,6 +234,39 @@ export default function AnswerSheetPage() {
         </div>
       )}
 
+      {/* Class selector */}
+      <div className="as-class-selector fade-up">
+        <div className="field-group">
+          <label className="field-label">Class</label>
+          {loadingClasses ? (
+            <div className="field-loading">Loading classes...</div>
+          ) : classes.length === 0 ? (
+            <div className="field-empty">
+              No classes found. Create a class in <strong>Classes</strong> first.
+            </div>
+          ) : (
+            <select
+              className="field-input field-select"
+              value={selectedClass}
+              onChange={e => setSelectedClass(e.target.value)}
+            >
+              {classes.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name} — {c.subject}
+                  {c.school_year ? ` (${c.school_year})` : ''}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        {selectedClassData && (
+          <div className="as-class-chip">
+            <strong>{selectedClassData.student_count}</strong> students ·{' '}
+            <strong>{exams.length}</strong> exams
+          </div>
+        )}
+      </div>
+
       <div className="as-body">
 
         {/* Left — Exam selector */}
@@ -239,17 +274,17 @@ export default function AnswerSheetPage() {
           <div className="as-panel-header">
             <span className="field-label">Select Exam</span>
             {selectedExam && (
-              <button className="btn-clear" onClick={() => { setSelectedExam(null); setResult(null); setStep(0); }}>
+              <button className="btn-clear" onClick={() => { setSelectedExam(null); setResult(null); }}>
                 Clear
               </button>
             )}
           </div>
 
-          {loading ? (
+          {loadingExams ? (
             <p className="as-loading">Loading exams…</p>
           ) : exams.length === 0 ? (
             <div className="as-empty">
-              <p>No exams found. Create one in <strong>Answer Keys</strong> first.</p>
+              <p>No exams for this class yet. Create one in <strong>Answer Keys</strong> first.</p>
             </div>
           ) : (
             <div className="exam-select-list">
@@ -267,7 +302,6 @@ export default function AnswerSheetPage() {
 
         {/* Right — Preview + Generate */}
         <div className="as-panel fade-up fade-up-delay-2">
-
           {!selectedExam ? (
             <div className="as-placeholder">
               <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
@@ -285,12 +319,10 @@ export default function AnswerSheetPage() {
                 <span className="exam-badge">{selectedExam.name}</span>
               </div>
 
-              {/* Question breakdown */}
               {selectedExam.questions?.length > 0 && (
                 <QuestionPreview questions={selectedExam.questions} />
               )}
 
-              {/* Sheet info */}
               <div className="sheet-info">
                 <div className="sheet-info-row">
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -317,7 +349,6 @@ export default function AnswerSheetPage() {
                 </div>
               </div>
 
-              {/* Generated result */}
               {result && (
                 <GeneratedCard
                   exam={selectedExam}
@@ -327,7 +358,6 @@ export default function AnswerSheetPage() {
                 />
               )}
 
-              {/* Generate button */}
               {!result && (
                 <button
                   className="btn btn-primary btn-generate"
@@ -357,11 +387,7 @@ export default function AnswerSheetPage() {
               )}
 
               {result && (
-                <button
-                  className="btn btn-ghost btn-regenerate"
-                  onClick={handleGenerate}
-                  disabled={generating}
-                >
+                <button className="btn btn-ghost btn-regenerate" onClick={handleGenerate} disabled={generating}>
                   Regenerate
                 </button>
               )}
@@ -370,7 +396,7 @@ export default function AnswerSheetPage() {
         </div>
       </div>
 
-      {/* Instructions panel */}
+      {/* Instructions */}
       <div className="as-instructions fade-up fade-up-delay-2">
         <div className="instructions-header">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -384,7 +410,7 @@ export default function AnswerSheetPage() {
             <span className="instruction-no">01</span>
             <div>
               <strong>Generate</strong>
-              <p>Select an exam and click Generate. A PDF answer sheet is created with bubbles for MC/T/F and write-in lines for ID/Essay.</p>
+              <p>Select a class and exam then click Generate. A PDF answer sheet is created with bubbles for MC/T/F and write-in lines for ID/Essay.</p>
             </div>
           </div>
           <div className="instruction-step">
@@ -398,7 +424,7 @@ export default function AnswerSheetPage() {
             <span className="instruction-no">03</span>
             <div>
               <strong>Upload & Grade</strong>
-              <p>After students complete the sheet, photograph or scan it and upload via the Upload Papers page. The system auto-detects the exam via QR and grades MC/T/F bubbles automatically.</p>
+              <p>After students complete the sheet, photograph or scan it and upload via Upload Papers. The system auto-detects the exam via QR and grades MC/T/F bubbles automatically.</p>
             </div>
           </div>
         </div>
