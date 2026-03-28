@@ -2,9 +2,10 @@ import React from 'react';
 import './Navbar.css';
 
 const NAV_ITEMS = [
-  { id: 'upload', label: 'Upload Papers' },
-  { id: 'keys',   label: 'Answer Keys' },
-  { id: 'results', label: 'Results' },
+  { id: 'upload',    label: 'Upload Papers' },
+  { id: 'keys',      label: 'Answer Keys'   },
+  { id: 'results',   label: 'Results'       },
+  { id: 'analytics', label: 'Analytics'     },
 ];
 
 export default function Navbar({ activePage, setActivePage }) {
@@ -21,7 +22,7 @@ export default function Navbar({ activePage, setActivePage }) {
               <path d="M15.8 15l.8.8 1.4-1.4" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </span>
-          <span className="brand-name">PaCheckYarn <em>AI</em></span>
+          <span className="brand-name">ExamCheck <em>AI</em></span>
         </button>
 
         {/* Nav links */}

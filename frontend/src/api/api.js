@@ -140,3 +140,19 @@ export async function getPaperResults(paperId) {
   if (!res.ok) throw new Error('Failed to fetch paper results');
   return res.json();
 }
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+export async function getExamAnalytics(examId) {
+  const res = await fetch(`${BASE_URL}/api/analytics/exam/${examId}`);
+  if (!res.ok) throw new Error('Failed to fetch analytics');
+  return res.json();
+}
+
+export async function getAIAnalysis(examId) {
+  const res = await fetch(`${BASE_URL}/api/analytics/exam/${examId}/ai-analysis`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error('Failed to get AI analysis');
+  return res.json();
+}

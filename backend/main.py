@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from database.database import engine, Base
-from routers import exams, papers, results, ocr
+from routers import exams, papers, results, ocr, analytics
 import os
 
 # ─── Create all database tables on startup ────────────────────────────────────
@@ -21,18 +21,16 @@ app = FastAPI(
     - **Exams** — Create exams with answer keys and rubrics
     - **Papers** — Upload student answer sheet images
     - **Results** — View scores, breakdowns, and summaries
-
-    ## Coming Soon
-    - OCR text extraction from uploaded images
-    - AI essay grading via OpenAI / Gemini
+    - **Analytics** — Charts, distributions, AI exam analysis
+    - **OCR** — Hybrid EasyOCR + TrOCR pipeline
     """,
-    version="1.0.0",
+    version="2.0.0",
 )
 
-# ─── CORS — allows the React frontend to talk to this backend ─────────────────
+# ─── CORS ─────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,6 +45,7 @@ app.include_router(exams.router)
 app.include_router(papers.router)
 app.include_router(results.router)
 app.include_router(ocr.router)
+app.include_router(analytics.router)
 
 # ─── Root health check ────────────────────────────────────────────────────────
 @app.get("/", tags=["Health"])
