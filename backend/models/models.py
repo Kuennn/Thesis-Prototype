@@ -10,10 +10,10 @@ import enum
 # ─── Enums ────────────────────────────────────────────────────────────────────
 
 class QuestionType(str, enum.Enum):
-    essay          = "essay"
+    essay           = "essay"
     multiple_choice = "multiple_choice"
-    true_or_false  = "true_or_false"
-    identification = "identification"
+    true_or_false   = "true_or_false"
+    identification  = "identification"
 
 class PaperStatus(str, enum.Enum):
     uploaded   = "uploaded"    # Image saved, not yet processed
@@ -31,6 +31,7 @@ class Exam(Base):
     name       = Column(String(200), nullable=False)
     subject    = Column(String(200), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    qr_token   = Column(String(64), nullable=True, unique=True)  # Unique token for QR codes
 
     # Relationships
     questions = relationship("Question", back_populates="exam", cascade="all, delete-orphan")
@@ -67,6 +68,7 @@ class StudentPaper(Base):
     max_score    = Column(Float, nullable=True)                   # Total possible score
     uploaded_at  = Column(DateTime(timezone=True), server_default=func.now())
     graded_at    = Column(DateTime(timezone=True), nullable=True)
+    qr_scanned   = Column(String(64), nullable=True)              # QR token found on this sheet
 
     exam    = relationship("Exam", back_populates="papers")
     answers = relationship("StudentAnswer", back_populates="paper", cascade="all, delete-orphan")
@@ -76,14 +78,14 @@ class StudentAnswer(Base):
     """One student's answer to one question, with the AI-generated score"""
     __tablename__ = "student_answers"
 
-    id              = Column(Integer, primary_key=True, index=True)
-    paper_id        = Column(Integer, ForeignKey("student_papers.id"), nullable=False)
-    question_id     = Column(Integer, ForeignKey("questions.id"), nullable=False)
-    extracted_text  = Column(Text, nullable=True)    # Text from OCR (added later)
-    score           = Column(Float, nullable=True)   # AI-assigned score (added later)
-    feedback        = Column(Text, nullable=True)    # AI feedback for the student
-    teacher_score   = Column(Float, nullable=True)   # Teacher override score
-    teacher_note    = Column(Text, nullable=True)    # Teacher's comment
+    id             = Column(Integer, primary_key=True, index=True)
+    paper_id       = Column(Integer, ForeignKey("student_papers.id"), nullable=False)
+    question_id    = Column(Integer, ForeignKey("questions.id"), nullable=False)
+    extracted_text = Column(Text, nullable=True)    # Text from OCR (added later)
+    score          = Column(Float, nullable=True)   # AI-assigned score (added later)
+    feedback       = Column(Text, nullable=True)    # AI feedback for the student
+    teacher_score  = Column(Float, nullable=True)   # Teacher override score
+    teacher_note   = Column(Text, nullable=True)    # Teacher's comment
 
     paper    = relationship("StudentPaper", back_populates="answers")
     question = relationship("Question", back_populates="answers")

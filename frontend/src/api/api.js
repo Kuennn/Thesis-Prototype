@@ -156,3 +156,54 @@ export async function getAIAnalysis(examId) {
   if (!res.ok) throw new Error('Failed to get AI analysis');
   return res.json();
 }
+
+// ─── OMR / Answer Sheets ──────────────────────────────────────────────────────
+
+export async function generateAnswerSheet(examId) {
+  const res = await fetch(`${BASE_URL}/api/omr/generate/${examId}`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'Failed to generate answer sheet');
+  }
+  return res.json();
+}
+
+export async function downloadAnswerSheet(examId, examName) {
+  const res = await fetch(`${BASE_URL}/api/omr/sheet/${examId}`);
+  if (!res.ok) throw new Error('Failed to download answer sheet');
+
+  // Trigger browser download
+  const blob = await res.blob();
+  const url  = window.URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `answer_sheet_${examName.replace(/\s+/g, '_')}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+export async function scanQRCode(paperId) {
+  const res = await fetch(`${BASE_URL}/api/omr/scan-qr/${paperId}`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'QR scan failed');
+  }
+  return res.json();
+}
+
+export async function detectBubbles(paperId) {
+  const res = await fetch(`${BASE_URL}/api/omr/detect-bubbles/${paperId}`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || 'Bubble detection failed');
+  }
+  return res.json();
+}

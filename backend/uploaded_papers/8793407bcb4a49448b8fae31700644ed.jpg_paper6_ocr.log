@@ -1,0 +1,185 @@
+OCR Accuracy Comparison Log
+Image: uploaded_papers\8793407bcb4a49448b8fae31700644ed.jpg
+Regions detected: 30
+============================================================
+
+Region 1:
+  EasyOCR : Computer Fundamentals
+  TrOCR   : Computer Fundamentals
+  Selected: Computer Fundamentals
+  Confidence: 0.896
+
+Region 2:
+  EasyOCR : Unit Test
+  TrOCR   : Unit Test .
+  Selected: Unit Test .
+  Confidence: 0.768
+
+Region 3:
+  EasyOCR : Inlroduclion to Compuler Suienct
+  TrOCR   : Introduction to Computer Science
+  Selected: Introduction to Computer Science
+  Confidence: 0.375
+
+Region 4:
+  EasyOCR : MarchWll6
+  TrOCR   : March 26,2026
+  Selected: March 26,2026
+  Confidence: 0.382
+
+Region 5:
+  EasyOCR : Mgria_Sahtos
+  TrOCR   : Maria Santos .
+  Selected: Maria Santos .
+  Confidence: 0.546
+
+Region 6:
+  EasyOCR : Dale
+  TrOCR   : dale .
+  Selected: dale .
+  Confidence: 0.996
+
+Region 7:
+  EasyOCR : Name:
+  TrOCR   : name :
+  Selected: name :
+  Confidence: 0.999
+
+Region 8:
+  EasyOCR : False
+  TrOCR   : false
+  Selected: false
+  Confidence: 0.999
+
+Region 9:
+  EasyOCR : True
+  TrOCR   : true
+  Selected: true
+  Confidence: 0.942
+
+Region 10:
+  EasyOCR : True
+  TrOCR   : true
+  Selected: true
+  Confidence: 0.996
+
+Region 11:
+  EasyOCR : Fafse
+  TrOCR   : false
+  Selected: false
+  Confidence: 0.696
+
+Region 12:
+  EasyOCR : Exocesser
+  TrOCR   : processor
+  Selected: processor
+  Confidence: 0.6
+
+Region 13:
+  EasyOCR : Windows_
+  TrOCR   : Windows
+  Selected: Windows
+  Confidence: 0.803
+
+Region 14:
+  EasyOCR : Essay (5.0 pts)
+  TrOCR   : Essay 150 pts )
+  Selected: Essay 150 pts )
+  Confidence: 0.945
+
+Region 15:
+  EasyOCR : like mmilor and keybbard .
+  TrOCR   : like monitor and keyboard .
+  Selected: like monitor and keyboard .
+  Confidence: 0.18
+
+Region 16:
+  EasyOCR : physical
+  TrOCR   : physical .
+  Selected: physical .
+  Confidence: 0.873
+
+Region 17:
+  EasyOCR : parts
+  TrOCR   : parts
+  Selected: parts
+  Confidence: 0.637
+
+Region 18:
+  EasyOCR : Hardure
+  TrOCR   : Hardware .
+  Selected: Hardware .
+  Confidence: 0.758
+
+Region 19:
+  EasyOCR : is #he
+  TrOCR   : is the
+  Selected: is the
+  Confidence: 0.426
+
+Region 20:
+  EasyOCR : Exampks of
+  TrOCR   : Examples of
+  Selected: Examples of
+  Confidence: 0.765
+
+Region 21:
+  EasyOCR : applications and_
+  TrOCR   : applications and
+  Selected: applications and
+  Confidence: 0.706
+
+Region 22:
+  EasyOCR : Software
+  TrOCR   : software
+  Selected: software
+  Confidence: 0.969
+
+Region 23:
+  EasyOCR : like
+  TrOCR   : like
+  Selected: like
+  Confidence: 0.998
+
+Region 24:
+  EasyOCR : is
+  TrOCR   : is
+  Selected: is
+  Confidence: 0.996
+
+Region 25:
+  EasyOCR : 'and Microsoft
+  TrOCR   : ' and Microsoft .
+  Selected: ' and Microsoft .
+  Confidence: 0.807
+
+Region 26:
+  EasyOCR : games
+  TrOCR   : games . '
+  Selected: games . '
+  Confidence: 0.857
+
+Region 27:
+  EasyOCR : Softunre
+  TrOCR   : software .
+  Selected: software .
+  Confidence: 0.585
+
+Region 28:
+  EasyOCR : ave
+  TrOCR   : are
+  Selected: are
+  Confidence: 0.464
+
+Region 29:
+  EasyOCR : Yy-ipit
+  TrOCR   : synaptic
+  Selected: synaptic
+  Confidence: 0.135
+
+Region 30:
+  EasyOCR : 4,/
+  TrOCR   : 0,000
+  Selected: 0,000
+  Confidence: 0.638
+

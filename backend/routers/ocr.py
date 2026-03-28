@@ -27,7 +27,8 @@ def process_paper(paper_id: int, db: Session = Depends(get_db)):
 
     try:
         # Step 1: OCR
-        ocr_result = extract_text_from_image(paper.image_path)
+        log_path = paper.image_path + f"_paper{paper_id}_ocr.log"
+        ocr_result = extract_text_from_image(paper.image_path, log_path=log_path)
         full_text  = ocr_result["full_text"]
 
         # Step 2: Load questions
@@ -139,7 +140,8 @@ def run_pipeline_background(paper_id: int):
         paper.status = PaperStatus.processing
         db.commit()
 
-        ocr_result = extract_text_from_image(paper.image_path)
+        log_path = paper.image_path + f"_paper{paper_id}_ocr.log"
+        ocr_result = extract_text_from_image(paper.image_path, log_path=log_path)
         full_text  = ocr_result["full_text"]
 
         questions = db.query(Question).filter(

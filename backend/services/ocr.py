@@ -118,41 +118,34 @@ def read_region_with_trocr(image: np.ndarray, bbox: list) -> str:
     bbox format from EasyOCR: [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]
     """
     try:
-        # Get bounding box coordinates
         pts   = np.array(bbox, dtype=np.int32)
         x_min = max(0, pts[:, 0].min() - 4)
         y_min = max(0, pts[:, 1].min() - 4)
         x_max = min(image.shape[1], pts[:, 0].max() + 4)
         y_max = min(image.shape[0], pts[:, 1].max() + 4)
 
-        # Skip regions that are too small
         if (x_max - x_min) < 5 or (y_max - y_min) < 5:
             return ""
 
-        # Crop the region
         cropped = image[y_min:y_max, x_min:x_max]
 
-        # Convert to RGB PIL Image (TrOCR expects RGB)
         if len(cropped.shape) == 2:
-            # Grayscale — convert to RGB
             cropped_rgb = cv2.cvtColor(cropped, cv2.COLOR_GRAY2RGB)
         else:
             cropped_rgb = cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB)
 
         pil_image = Image.fromarray(cropped_rgb)
 
-        # Resize if too small for TrOCR (min 32px height recommended)
         if pil_image.height < 32:
             scale     = 32 / pil_image.height
             new_w     = int(pil_image.width * scale)
             pil_image = pil_image.resize((new_w, 32), Image.LANCZOS)
 
-        # Run TrOCR
         processor, model = get_trocr()
         pixel_values     = processor(pil_image, return_tensors="pt").pixel_values
 
         with torch.no_grad():
-            generated = model.generate(pixel_values, max_new_tokens=64)
+            generated = model.generate(pixel_values, max_new_tokens=128)
 
         text = processor.batch_decode(generated, skip_special_tokens=True)[0]
         return text.strip()
@@ -164,10 +157,15 @@ def read_region_with_trocr(image: np.ndarray, bbox: list) -> str:
 
 # ─── Main Hybrid Extraction ───────────────────────────────────────────────────
 
-def extract_text_from_image(image_path: str) -> dict:
+def extract_text_from_image(image_path: str, log_path: str = None) -> dict:
     """
     Main function: Hybrid OCR pipeline.
     EasyOCR finds text regions, TrOCR reads each region.
+
+    Args:
+        image_path: Path to the image file to process
+        log_path:   Optional path to write an EasyOCR vs TrOCR comparison log.
+                    Used for Phase 6 accuracy evaluation.
 
     Returns:
         {
@@ -203,7 +201,6 @@ def extract_text_from_image(image_path: str) -> dict:
             }
 
         # Step 3: TrOCR reads each detected region
-        # Load original preprocessed image for cropping
         proc_img = cv2.imread(temp_path)
 
         lines       = []
@@ -213,31 +210,47 @@ def extract_text_from_image(image_path: str) -> dict:
             if confidence < 0.1:
                 continue
 
-            # Use TrOCR to read this region more accurately
             trocr_text = read_region_with_trocr(proc_img, bbox)
 
-            # Choose the better result:
-            # TrOCR for handwriting (longer text = more context = more reliable)
-            # EasyOCR as fallback if TrOCR returns empty
+            # TrOCR for handwriting, EasyOCR as fallback if TrOCR returns empty
             final_text = trocr_text if trocr_text else easy_text
 
             if final_text:
                 lines.append({
-                    "text":        final_text,
-                    "easy_text":   easy_text,   # Keep EasyOCR result for comparison
-                    "trocr_text":  trocr_text,  # Keep TrOCR result for comparison
-                    "confidence":  round(confidence, 3),
-                    "bbox":        bbox,
+                    "text":       final_text,
+                    "easy_text":  easy_text,
+                    "trocr_text": trocr_text,
+                    "confidence": round(confidence, 3),
+                    "bbox":       bbox,
                 })
                 confidences.append(confidence)
 
-        # Step 4: Combine all regions into full text
-        # Sort by vertical position (top to bottom) then horizontal (left to right)
+        # Step 4: Sort by vertical then horizontal position (top-left reading order)
         lines.sort(key=lambda x: (
-            min(pt[1] for pt in x["bbox"]),  # y position
-            min(pt[0] for pt in x["bbox"]),  # x position
+            min(pt[1] for pt in x["bbox"]),
+            min(pt[0] for pt in x["bbox"]),
         ))
 
+        # ── Accuracy comparison log ───────────────────────────────────────────
+        # Writes EasyOCR vs TrOCR side by side for every detected region.
+        # Used for Phase 6 evaluation and accuracy measurement.
+        if log_path:
+            try:
+                with open(log_path, "w", encoding="utf-8") as log:
+                    log.write("OCR Accuracy Comparison Log\n")
+                    log.write(f"Image: {image_path}\n")
+                    log.write(f"Regions detected: {len(lines)}\n")
+                    log.write("=" * 60 + "\n\n")
+                    for i, line in enumerate(lines, 1):
+                        log.write(f"Region {i}:\n")
+                        log.write(f"  EasyOCR : {line['easy_text']}\n")
+                        log.write(f"  TrOCR   : {line['trocr_text']}\n")
+                        log.write(f"  Selected: {line['text']}\n")
+                        log.write(f"  Confidence: {line['confidence']}\n\n")
+            except Exception as e:
+                print(f"Failed to write OCR log: {e}")
+
+        # Step 5: Combine all regions into full text
         full_text      = " ".join([l["text"] for l in lines])
         avg_confidence = round(
             sum(confidences) / len(confidences), 3

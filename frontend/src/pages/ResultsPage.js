@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getAllExams, getPapersByExam, getExamSummary, getPaperResults, processPaper, overrideScore, deletePaper } from '../api/api';
+import {
+  getAllExams, getPapersByExam, getExamSummary, getPaperResults,
+  processPaper, overrideScore, deletePaper, detectBubbles, scanQRCode
+} from '../api/api';
 import './ResultsPage.css';
 
 // ─── Score Badge ──────────────────────────────────────────────────────────────
@@ -29,17 +32,17 @@ function StatusPill({ status }) {
 // ─── Summary Cards ────────────────────────────────────────────────────────────
 function SummaryCards({ summary }) {
   const cards = [
-    { label: 'Total Papers',   value: summary.total_papers  },
-    { label: 'Graded',         value: summary.graded_papers },
-    { label: 'Pending',        value: summary.pending       },
+    { label: 'Total Papers',  value: summary.total_papers  },
+    { label: 'Graded',        value: summary.graded_papers },
+    { label: 'Pending',       value: summary.pending       },
     {
       label: 'Average Score',
       value: summary.average_score != null
         ? `${summary.average_score}/${summary.max_score || '?'}`
         : '—'
     },
-    { label: 'Highest',  value: summary.highest_score ?? '—' },
-    { label: 'Lowest',   value: summary.lowest_score  ?? '—' },
+    { label: 'Highest', value: summary.highest_score ?? '—' },
+    { label: 'Lowest',  value: summary.lowest_score  ?? '—' },
   ];
 
   return (
@@ -56,16 +59,20 @@ function SummaryCards({ summary }) {
 
 // ─── Question Breakdown Row ───────────────────────────────────────────────────
 function QuestionRow({ item, paperId, onOverrideSuccess }) {
-  const [showForm,   setShowForm]   = useState(false);
-  const [newScore,   setNewScore]   = useState('');
-  const [newNote,    setNewNote]    = useState('');
-  const [saving,     setSaving]     = useState(false);
-  const [saveError,  setSaveError]  = useState(null);
+  const [showForm,  setShowForm]  = useState(false);
+  const [newScore,  setNewScore]  = useState('');
+  const [newNote,   setNewNote]   = useState('');
+  const [saving,    setSaving]    = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   const finalScore = item.teacher_score ?? item.ai_score;
   const pct        = item.max_score > 0 && finalScore != null
     ? (finalScore / item.max_score) * 100 : 0;
   const correct    = finalScore != null && finalScore >= item.max_score;
+
+  // Determine label based on question type
+  const isOMR    = item.question_type === 'multiple_choice' || item.question_type === 'true_or_false';
+  const readLabel = isOMR ? 'Bubble detected' : 'OCR read';
 
   const handleOverride = async () => {
     const score = parseFloat(newScore);
@@ -98,7 +105,7 @@ function QuestionRow({ item, paperId, onOverrideSuccess }) {
 
       <div className="qrow-middle">
         <div className="qrow-answers">
-          <span className="qrow-label">OCR read</span>
+          <span className="qrow-label">{readLabel}</span>
           <span className="qrow-value extracted">
             {item.extracted_text || <em>nothing detected</em>}
           </span>
@@ -117,7 +124,6 @@ function QuestionRow({ item, paperId, onOverrideSuccess }) {
           </p>
         )}
 
-        {/* Override form */}
         {showForm && (
           <div className="override-form">
             <div className="override-form-row">
@@ -148,9 +154,7 @@ function QuestionRow({ item, paperId, onOverrideSuccess }) {
                 />
               </div>
             </div>
-            {saveError && (
-              <p className="override-error">{saveError}</p>
-            )}
+            {saveError && <p className="override-error">{saveError}</p>}
             <div className="override-actions">
               <button
                 className="btn btn-ghost override-btn-sm"
@@ -196,9 +200,9 @@ function QuestionRow({ item, paperId, onOverrideSuccess }) {
 
 // ─── Paper Detail Modal ───────────────────────────────────────────────────────
 function PaperDetailPanel({ paperId, onClose, onOverrideSuccess }) {
-  const [detail, setDetail]   = useState(null);
+  const [detail,  setDetail]  = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [error,   setError]   = useState(null);
 
   const loadDetail = useCallback(() => {
     setLoading(true);
@@ -296,7 +300,7 @@ export default function ResultsPage() {
       .finally(() => setLoadingPapers(false));
   }, [selectedExamId]);
 
-  // Refresh papers list
+  // Refresh papers list and summary
   const refreshPapers = useCallback(() => {
     if (!selectedExamId) return;
     Promise.all([
@@ -304,22 +308,40 @@ export default function ResultsPage() {
       getExamSummary(selectedExamId),
     ]).then(([papersData, summaryData]) => {
       setPapers([...papersData]);
-      setSummary({...summaryData});
+      setSummary({ ...summaryData });
     });
   }, [selectedExamId]);
 
-  // Trigger OCR + grading for a paper
-  const handleProcess = async (paperId) => {
-    setProcessing(prev => ({ ...prev, [paperId]: true }));
+  // Run OCR pipeline
+  const handleProcessOCR = async (paperId) => {
+    setProcessing(prev => ({ ...prev, [paperId]: 'ocr' }));
     setError(null);
     try {
       await processPaper(paperId);
       refreshPapers();
       if (selectedPaper === paperId) setSelectedPaper(null);
     } catch (e) {
-      setError(`Processing failed: ${e.message}`);
+      setError(`OCR failed: ${e.message}`);
     } finally {
-      setProcessing(prev => ({ ...prev, [paperId]: false }));
+      setProcessing(prev => ({ ...prev, [paperId]: null }));
+    }
+  };
+
+  // Run OMR bubble detection pipeline
+  const handleProcessOMR = async (paperId) => {
+    setProcessing(prev => ({ ...prev, [paperId]: 'omr' }));
+    setError(null);
+    try {
+      // Step 1: Scan QR to auto-link exam (non-fatal if it fails)
+      try { await scanQRCode(paperId); } catch (_) {}
+      // Step 2: Detect bubbles
+      await detectBubbles(paperId);
+      refreshPapers();
+      if (selectedPaper === paperId) setSelectedPaper(null);
+    } catch (e) {
+      setError(`OMR detection failed: ${e.message}`);
+    } finally {
+      setProcessing(prev => ({ ...prev, [paperId]: null }));
     }
   };
 
@@ -336,8 +358,6 @@ export default function ResultsPage() {
       setError(`Delete failed: ${err.message}`);
     }
   };
-
-  const selectedExam = exams.find(e => String(e.id) === selectedExamId);
 
   return (
     <div className="results-page">
@@ -435,41 +455,83 @@ export default function ResultsPage() {
                 <div className="paper-row-meta">
                   <ScoreBadge score={paper.total_score} maxScore={paper.max_score} />
 
-                  {/* OCR / Process button */}
-                  {(paper.status === 'uploaded' || paper.status === 'error') && (
-                    <button
-                      className="btn btn-process"
-                      disabled={processing[paper.id]}
-                      onClick={e => { e.stopPropagation(); handleProcess(paper.id); }}
-                    >
-                      {processing[paper.id] ? (
-                        <>
-                          <span className="btn-spinner">
+                  {/* Action buttons — shown for uploaded, error, or processing */}
+                  {(paper.status === 'uploaded' || paper.status === 'error' || paper.status === 'processing') && (
+                    <>
+                      {/* Run OCR — for handwritten identification/essay papers */}
+                      <button
+                        className="btn btn-process"
+                        disabled={!!processing[paper.id]}
+                        onClick={e => { e.stopPropagation(); handleProcessOCR(paper.id); }}
+                      >
+                        {processing[paper.id] === 'ocr' ? (
+                          <>
+                            <span className="btn-spinner">
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                <circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="1.5" strokeDasharray="16" strokeDashoffset="8" strokeLinecap="round"/>
+                              </svg>
+                            </span>
+                            Running OCR...
+                          </>
+                        ) : (
+                          <>
                             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                              <circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="1.5" strokeDasharray="16" strokeDashoffset="8" strokeLinecap="round"/>
+                              <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1"/>
+                              <path d="M4 6l2 2 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
-                          </span>
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                            <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1"/>
-                            <path d="M4 6l2 2 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                          Run OCR
-                        </>
-                      )}
-                    </button>
+                            Run OCR
+                          </>
+                        )}
+                      </button>
+
+                      {/* Run OMR — for bubble answer sheets */}
+                      <button
+                        className="btn btn-process"
+                        disabled={!!processing[paper.id]}
+                        onClick={e => { e.stopPropagation(); handleProcessOMR(paper.id); }}
+                      >
+                        {processing[paper.id] === 'omr' ? (
+                          <>
+                            <span className="btn-spinner">
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                <circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="1.5" strokeDasharray="16" strokeDashoffset="8" strokeLinecap="round"/>
+                              </svg>
+                            </span>
+                            Scanning OMR...
+                          </>
+                        ) : (
+                          <>
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                              <circle cx="6" cy="6" r="4" stroke="currentColor" strokeWidth="1"/>
+                              <circle cx="6" cy="6" r="1.5" fill="currentColor"/>
+                            </svg>
+                            Run OMR
+                          </>
+                        )}
+                      </button>
+                    </>
                   )}
 
-                  {paper.status === 'processing' && (
-                    <button
-                      className="btn btn-process"
-                      onClick={e => { e.stopPropagation(); handleProcess(paper.id); }}
-                    >
-                      Re-process
-                    </button>
+                  {/* Re-run buttons for already graded papers */}
+                  {paper.status === 'graded' && (
+                    <>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        disabled={!!processing[paper.id]}
+                        onClick={e => { e.stopPropagation(); handleProcessOCR(paper.id); }}
+                        title="Re-run OCR grading"
+                      >
+                        Re-OCR
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        disabled={!!processing[paper.id]}
+                        onClick={e => { e.stopPropagation(); handleProcessOMR(paper.id); }}
+                        title="Re-run OMR bubble detection"
+                      >
+                        Re-OMR
+                      </button>
+                    </>
                   )}
 
                   {/* Delete button */}

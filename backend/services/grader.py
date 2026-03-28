@@ -1,12 +1,12 @@
 # services/grader.py
 # Handles answer checking for all objective question types.
-# Uses pattern matching on OCR text — no AI needed for MC, T/F, and Identification.
+# Updated for hybrid TrOCR output — handles fragmented text regions.
 #
 # Grading logic per type:
-#   multiple_choice  → find "1. A", "1) A", "1 A" patterns → compare letter to answer key
-#   true_or_false    → find "1. True", "1. T", "1. False", "1. F" patterns
-#   identification   → fuzzy text match against answer key (handles OCR typos)
-#   essay            → handled by Groq AI grader
+#   multiple_choice  → regex pattern matching for "1. A" style answers
+#   true_or_false    → regex + fuzzy match for True/False variants
+#   identification   → improved extraction + multi-strategy fuzzy matching
+#   essay            → Groq AI grader with improved text extraction
 
 import re
 from difflib import SequenceMatcher
@@ -16,10 +16,6 @@ from models.models import QuestionType
 # ─── Main Entry Point ─────────────────────────────────────────────────────────
 
 def grade_answers(extracted_text: str, questions: list) -> list:
-    """
-    Takes the full OCR text from a paper and a list of Question objects.
-    Returns a list of grading results, one per question.
-    """
     results = []
 
     for question in questions:
@@ -41,7 +37,7 @@ def grade_answers(extracted_text: str, questions: list) -> list:
 
         elif q_type == QuestionType.identification:
             extracted, score, feedback = grade_identification(
-                extracted_text, q_no, key, max_s
+                extracted_text, q_no, key, max_s, questions
             )
 
         elif q_type == QuestionType.essay:
@@ -52,6 +48,7 @@ def grade_answers(extracted_text: str, questions: list) -> list:
                 question_text = question.question_text or "",
                 rubric        = question.rubric or "",
                 max_score     = max_s,
+                questions     = questions,
             )
 
         else:
@@ -76,18 +73,13 @@ def grade_answers(extracted_text: str, questions: list) -> list:
 # ─── Multiple Choice ──────────────────────────────────────────────────────────
 
 def grade_multiple_choice(text: str, q_no: int, answer_key: str, max_score: float):
-    """
-    Finds patterns like: "1. A", "1) A", "1 - A", "1: A", "1.A"
-    TrOCR sometimes separates number and letter so we have a fallback pattern.
-    """
     normalized = normalize_ocr_text(text)
 
-    # Primary pattern — number immediately followed by letter
+    # Primary — number immediately followed by letter
     pattern = rf'\b{q_no}\s*[.):\-]?\s*([A-Da-d])\b'
     match   = re.search(pattern, normalized)
 
     # Fallback — number then up to 5 non-letter chars then a letter
-    # Handles TrOCR separating "1" and "A" into different tokens
     if not match:
         pattern = rf'\b{q_no}\b[^A-Da-d\n]{{0,5}}([A-Da-d])\b'
         match   = re.search(pattern, normalized)
@@ -110,10 +102,6 @@ def grade_multiple_choice(text: str, q_no: int, answer_key: str, max_score: floa
 # ─── True or False ────────────────────────────────────────────────────────────
 
 def grade_true_or_false(text: str, q_no: int, answer_key: str, max_score: float):
-    """
-    Finds patterns like: "1. True", "1. False", "1. T", "1. F"
-    Fuzzy matches to handle OCR misreads like "Irue" for "True".
-    """
     normalized = normalize_ocr_text(text)
 
     pattern = rf'\b{q_no}\s*[.):\-]?\s*([A-Za-z]+)\b'
@@ -122,95 +110,127 @@ def grade_true_or_false(text: str, q_no: int, answer_key: str, max_score: float)
     if not match:
         return ("", 0.0, f"Could not find answer for question {q_no} in the paper.")
 
-    raw            = match.group(1).strip().lower()
-    correct_answer = answer_key.strip().lower()
+    raw          = match.group(1).strip().lower()
+    correct_norm = normalize_true_false(answer_key.strip().lower())
+    student_ans  = normalize_true_false(raw)
 
-    student_answer = normalize_true_false(raw)
-    correct_norm   = normalize_true_false(correct_answer)
-
-    if student_answer is None:
+    if student_ans is None:
         return (raw, 0.0,
                 f"Could not read True/False answer for question {q_no}. Found: '{raw}'")
 
-    if student_answer == correct_norm:
-        return (student_answer.capitalize(), max_score,
-                f"Correct! Answer: {student_answer.capitalize()}")
+    if student_ans == correct_norm:
+        return (student_ans.capitalize(), max_score,
+                f"Correct! Answer: {student_ans.capitalize()}")
     else:
         return (
-            student_answer.capitalize(), 0.0,
-            f"Incorrect. You answered {student_answer.capitalize()}, "
+            student_ans.capitalize(), 0.0,
+            f"Incorrect. You answered {student_ans.capitalize()}, "
             f"correct answer is {correct_norm.capitalize()}."
         )
 
 
 def normalize_true_false(raw: str):
-    """Maps various OCR outputs to 'true' or 'false'."""
     true_variants  = {'true', 't', 'yes', 'y', '1', 'irue', 'trve', 'troe', 'tue', 'ture'}
     false_variants = {'false', 'f', 'no', 'n', '0', 'talse', 'faise', 'fase', 'flase'}
 
     raw = raw.lower().strip()
-    if raw in true_variants:
-        return 'true'
-    if raw in false_variants:
-        return 'false'
+    if raw in true_variants:  return 'true'
+    if raw in false_variants: return 'false'
 
-    # Fuzzy match as last resort
-    if fuzzy_match(raw, 'true') > 0.75:
-        return 'true'
-    if fuzzy_match(raw, 'false') > 0.75:
-        return 'false'
-
+    if fuzzy_match(raw, 'true')  > 0.75: return 'true'
+    if fuzzy_match(raw, 'false') > 0.75: return 'false'
     return None
 
 
 # ─── Identification ───────────────────────────────────────────────────────────
 
-def grade_identification(text: str, q_no: int, answer_key: str, max_score: float):
+def grade_identification(text: str, q_no: int, answer_key: str,
+                         max_score: float, questions: list = None):
     """
-    Extracts the answer for a question number and fuzzy matches against the key.
-    Updated to handle TrOCR output which may include punctuation artifacts.
-
-    Scoring:
-      >= 90% match → full marks
-      >= 70% match → half marks
-      <  70% match → no marks
+    Multi-strategy extraction for identification answers.
+    TrOCR fragments text into regions, so we try several approaches
+    and pick the best match against the answer key.
     """
     normalized = normalize_ocr_text(text)
 
-    # Extract text after the question number until the next number or end
-    pattern = rf'\b{q_no}\s*[.):\-]?\s*(.+?)(?=\b{q_no + 1}\s*[.):\-]|\Z)'
-    match   = re.search(pattern, normalized, re.DOTALL)
+    # Determine what the next question number is
+    next_q_no = _next_question_no(q_no, questions)
 
-    if not match:
+    candidates = []
+
+    # ── Strategy 1: Standard pattern with boundary ────────────────────────────
+    if next_q_no:
+        pattern = rf'\b{q_no}\s*[.):\-]?\s*(.+?)(?=\b{next_q_no}\s*[.):\-]|\Z)'
+    else:
+        pattern = rf'\b{q_no}\s*[.):\-]?\s*(.+?)(?=\Z)'
+
+    match = re.search(pattern, normalized, re.DOTALL)
+    if match:
+        raw = match.group(1).strip()
+        # Take first line only and clean up
+        first_line = raw.split('\n')[0].strip()
+        first_line = re.sub(r'[.\-,;:]+$', '', first_line).strip()
+        # Take only first 3 words — identification answers are short
+        words = first_line.split()[:3]
+        candidate = ' '.join(words).strip()
+        if candidate:
+            candidates.append(candidate)
+
+    # ── Strategy 2: Look for answer key words anywhere near the question ───────
+    # Search for words from the answer key in the vicinity of the question number
+    key_words = answer_key.lower().split()
+    if len(key_words) <= 3:
+        # Build pattern that looks for key words near the question number
+        q_pos = re.search(rf'\b{q_no}\b', normalized)
+        if q_pos:
+            # Look at 80 chars after the question number
+            vicinity = normalized[q_pos.start():q_pos.start() + 80]
+            # Try to find the answer key words in the vicinity
+            for word in key_words:
+                word_match = re.search(rf'\b{re.escape(word)}\b', vicinity, re.IGNORECASE)
+                if word_match:
+                    # Extract surrounding context
+                    start = max(0, word_match.start() - 5)
+                    end   = min(len(vicinity), word_match.end() + 20)
+                    candidates.append(vicinity[start:end].strip())
+
+    # ── Strategy 3: Whole text fuzzy search for answer key ────────────────────
+    # If answer key is short (≤3 words), search the entire text for it
+    if len(key_words) <= 3:
+        # Look for partial matches of the answer key anywhere in text
+        for i in range(len(normalized) - len(answer_key)):
+            chunk = normalized[i:i + len(answer_key) + 10]
+            if fuzzy_match(chunk[:len(answer_key)].lower(), answer_key.lower()) > 0.7:
+                candidates.append(chunk[:len(answer_key) + 5].strip())
+
+    # ── Pick best candidate ────────────────────────────────────────────────────
+    if not candidates:
         return ("", 0.0, f"Could not find answer for question {q_no} in the paper.")
 
-    student_answer = match.group(1).strip()
+    # Score each candidate against the answer key
+    best_text  = ""
+    best_score = 0.0
+    for c in candidates:
+        c_clean = re.sub(r'[.\-,;:]+$', '', c).strip()[:80]
+        sim     = fuzzy_match(c_clean.lower(), answer_key.lower())
+        if sim > best_score:
+            best_score = sim
+            best_text  = c_clean
 
-    # Take first line only — avoids grabbing next question's content
-    student_answer = student_answer.split('\n')[0].strip()
-
-    # Clean up TrOCR punctuation artifacts (dots, dashes, commas at end)
-    student_answer = re.sub(r'[.\-,;]+$', '', student_answer).strip()
-
-    # Cap at 60 chars — identification answers should be short
-    student_answer = student_answer[:60].strip()
-
-    if not student_answer:
+    if not best_text:
         return ("", 0.0, f"No answer found for question {q_no}.")
 
-    similarity = fuzzy_match(student_answer.lower(), answer_key.lower())
-
-    if similarity >= 0.90:
-        return (student_answer, max_score,
-                f"Correct! ({int(similarity * 100)}% match)")
-    elif similarity >= 0.70:
+    if best_score >= 0.90:
+        return (best_text, max_score,
+                f"Correct! ({int(best_score * 100)}% match)")
+    elif best_score >= 0.65:
         half = round(max_score / 2, 1)
-        return (student_answer, half,
-                f"Partially correct ({int(similarity * 100)}% match). "
+        return (best_text, half,
+                f"Partially correct ({int(best_score * 100)}% match). "
                 f"Expected: {answer_key}")
     else:
-        return (student_answer, 0.0,
-                f"Incorrect ({int(similarity * 100)}% match). "
+        return (best_text, 0.0,
+                f"Incorrect ({int(best_score * 100)}% match). "
                 f"Expected: {answer_key}")
 
 
@@ -223,29 +243,49 @@ def grade_essay_with_ai(
     question_text: str,
     rubric:        str,
     max_score:     float,
+    questions:     list = None,
 ):
     """
-    Extracts the student's essay answer from OCR text,
-    then sends it to Groq for rubric-based grading.
-    Returns: (extracted_text, score, feedback, essay_details)
+    Improved essay extraction for TrOCR fragmented output.
+    Uses multiple strategies to get the best essay text before sending to Groq.
     """
     from services.essay_grader import grade_essay
 
-    # Try to extract text near this question number
-    pattern   = rf'\b{q_no}\s*[.):\-]?\s*(.+?)(?=\b{q_no + 1}\s*[.):\-]|\Z)'
-    match     = re.search(pattern, text, re.DOTALL)
+    next_q_no = _next_question_no(q_no, questions)
     extracted = ""
 
-    if match:
-        extracted = match.group(1).strip()[:1000]
+    # ── Strategy 1: Question number boundary ──────────────────────────────────
+    if next_q_no:
+        pattern = rf'\b{q_no}\s*[.):\-]?\s*(.+?)(?=\b{next_q_no}\s*[.):\-]|\Z)'
+    else:
+        pattern = rf'\b{q_no}\s*[.):\-]?\s*(.+?)(?=\Z)'
 
-    # Fallback — check for "Answer:" label
-    if not extracted:
-        answer_match = re.search(r'[Aa]nswer\s*:\s*(.+)', text, re.DOTALL)
+    match = re.search(pattern, text, re.DOTALL)
+    if match:
+        extracted = match.group(1).strip()[:1500]
+
+    # ── Strategy 2: "Answer:" label ───────────────────────────────────────────
+    if not extracted or len(extracted.split()) < 5:
+        answer_match = re.search(r'[Aa]nswer\s*[:\-]?\s*(.+)', text, re.DOTALL)
         if answer_match:
-            extracted = answer_match.group(1).strip()[:1000]
-        else:
-            extracted = text.strip()[:1000]
+            extracted = answer_match.group(1).strip()[:1500]
+
+    # ── Strategy 3: Use full text minus question numbers ──────────────────────
+    # For single-essay exams or when other strategies fail
+    if not extracted or len(extracted.split()) < 5:
+        # Remove lines that look like question numbers (e.g. "1.", "2.")
+        lines    = text.split(' ')
+        filtered = [
+            w for w in lines
+            if not re.match(r'^\d+[.):\-]?$', w.strip())
+        ]
+        extracted = ' '.join(filtered).strip()[:1500]
+
+    # ── Clean up TrOCR artifacts ──────────────────────────────────────────────
+    # TrOCR adds random periods and spaces between words
+    extracted = re.sub(r'\s+\.\s+', ' ', extracted)   # " . " → " "
+    extracted = re.sub(r'\s{2,}',   ' ', extracted)   # multiple spaces → single
+    extracted = extracted.strip()
 
     result = grade_essay(
         student_answer = extracted,
@@ -266,6 +306,17 @@ def grade_essay_with_ai(
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
+
+def _next_question_no(q_no: int, questions: list) -> int:
+    """Returns the next question number after q_no, or None if last."""
+    if not questions:
+        return q_no + 1
+    q_nos = sorted([q.question_no for q in questions])
+    idx   = q_nos.index(q_no) if q_no in q_nos else -1
+    if idx >= 0 and idx < len(q_nos) - 1:
+        return q_nos[idx + 1]
+    return None
+
 
 def normalize_ocr_text(text: str) -> str:
     """Normalizes whitespace and collapses multiple spaces."""

@@ -2,10 +2,11 @@ import React from 'react';
 import './Navbar.css';
 
 const NAV_ITEMS = [
-  { id: 'upload',    label: 'Upload Papers' },
-  { id: 'keys',      label: 'Answer Keys'   },
-  { id: 'results',   label: 'Results'       },
-  { id: 'analytics', label: 'Analytics'     },
+  { id: 'upload',      label: 'Upload Papers'  },
+  { id: 'keys',        label: 'Answer Keys'    },
+  { id: 'results',     label: 'Results'        },
+  { id: 'analytics',   label: 'Analytics'      },
+  { id: 'answersheet', label: 'Answer Sheets'  },
 ];
 
 export default function Navbar({ activePage, setActivePage }) {

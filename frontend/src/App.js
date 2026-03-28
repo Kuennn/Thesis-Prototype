@@ -4,6 +4,7 @@ import UploadPage from './pages/UploadPage';
 import ExamsPage from './pages/ExamsPage';
 import ResultsPage from './pages/ResultsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import AnswerSheetPage from './pages/AnswerSheetPage';
 import './App.css';
 
 export default function App() {
@@ -13,10 +14,11 @@ export default function App() {
     <div className="app-shell">
       <Navbar activePage={activePage} setActivePage={setActivePage} />
       <main className="app-main">
-        {activePage === 'upload'    && <UploadPage />}
-        {activePage === 'results'   && <ResultsPage />}
-        {activePage === 'keys'      && <ExamsPage />}
-        {activePage === 'analytics' && <AnalyticsPage />}
+        {activePage === 'upload'       && <UploadPage />}
+        {activePage === 'results'      && <ResultsPage />}
+        {activePage === 'keys'         && <ExamsPage />}
+        {activePage === 'analytics'    && <AnalyticsPage />}
+        {activePage === 'answersheet'  && <AnswerSheetPage />}
       </main>
     </div>
   );
