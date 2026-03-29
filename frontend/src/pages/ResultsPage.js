@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   getAllClasses, getAllExams, getPapersByExam, getExamSummary,
   getPaperResults, processPaper, overrideScore, deletePaper,
-  scanQRCode, detectBubbles,
+  scanQRCode, detectBubbles, processExamPapers, exportPaperPDF,
 } from '../api/api';
 import './ResultsPage.css';
 
@@ -182,11 +182,27 @@ function PaperDetailPanel({ paperId, onClose, onOverrideSuccess }) {
           <h3>{detail?.student_name || 'Student Paper'}</h3>
           {detail && <ScoreBadge score={detail.total_score} maxScore={detail.max_score} />}
         </div>
-        <button className="btn-icon" onClick={onClose}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {detail && (
+            <button className="btn btn-ghost btn-sm"
+              onClick={() => exportPaperPDF(paperId, detail.student_name)}
+              title="Download PDF report">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M6 1v7M3 5.5L6 8.5l3-3" stroke="currentColor"
+                  strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M1 10h10" stroke="currentColor"
+                  strokeWidth="1.3" strokeLinecap="round"/>
+              </svg>
+              PDF
+            </button>
+          )}
+          <button className="btn-icon" onClick={onClose}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 3l10 10M13 3L3 13" stroke="currentColor"
+                strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
       </div>
       {loading && <p className="detail-loading">Loading results...</p>}
       {error   && <p className="detail-error">{error}</p>}
@@ -306,6 +322,25 @@ export default function ResultsPage() {
       setError(`OMR failed: ${e.message}`);
     } finally {
       setProcessing(prev => ({ ...prev, [paperId]: false }));
+    }
+  };
+
+  const handleProcessAll = async () => {
+    if (!selectedExamId) return;
+    const unprocessed = papers.filter(p =>
+      p.status === 'uploaded' || p.status === 'error'
+    );
+    if (unprocessed.length === 0) {
+      setError('No unprocessed papers found.');
+      return;
+    }
+    setError(null);
+    try {
+      const result = await processExamPapers(selectedExamId);
+      alert(`${result.queued} paper(s) queued for processing. Results will update automatically — refresh in a minute.`);
+      refreshPapers();
+    } catch (e) {
+      setError(`Failed to queue: ${e.message}`);
     }
   };
 
@@ -430,6 +465,11 @@ export default function ResultsPage() {
             <span className="field-label">
               {papers.length} paper{papers.length !== 1 ? 's' : ''}
             </span>
+            {papers.some(p => p.status === 'uploaded' || p.status === 'error') && (
+              <button className="btn btn-process btn-sm" onClick={handleProcessAll}>
+                ▶ Run OCR All
+              </button>
+            )}
           </div>
 
           {loadingPapers ? (

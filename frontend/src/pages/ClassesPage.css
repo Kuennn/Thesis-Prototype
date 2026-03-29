@@ -548,3 +548,23 @@
 }
 
 .btn-icon:hover { background: var(--cream-dark); color: var(--ink); }
+
+/* ─── CSV import ──────────────────────────────────────────────────────────── */
+.tab-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-csv-upload {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-csv-upload:hover {
+  background: var(--cream-dark) !important;
+  color: var(--ink) !important;
+}

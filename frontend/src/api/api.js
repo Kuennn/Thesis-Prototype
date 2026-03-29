@@ -1,7 +1,7 @@
 // src/api/api.js
 // Central place for all backend API calls
 
-const BASE_URL = 'https://tied-enable-sandy-occurring.trycloudflare.com';
+const BASE_URL = 'http://localhost:8000';
 
 // ─── Classes ──────────────────────────────────────────────────────────────────
 
@@ -264,4 +264,71 @@ export async function detectBubbles(paperId) {
   const res = await fetch(`${BASE_URL}/api/omr/detect-bubbles/${paperId}`, { method: 'POST' });
   if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Bubble detection failed'); }
   return res.json();
+}
+
+// ─── CSV Import ───────────────────────────────────────────────────────────────
+
+export async function downloadCSVTemplate(classId, className) {
+  const res = await fetch(`${BASE_URL}/api/classes/${classId}/csv-template`);
+  if (!res.ok) throw new Error('Failed to download template');
+  const blob = await res.blob();
+  const url  = window.URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `student_import_${className.replace(/\s+/g, '_')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+export async function importStudentsCSV(classId, file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(`${BASE_URL}/api/classes/${classId}/import-csv`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Import failed'); }
+  return res.json();
+}
+
+// ─── Process all papers in exam ───────────────────────────────────────────────
+
+export async function processExamPapers(examId) {
+  const res = await fetch(`${BASE_URL}/api/ocr/process-exam/${examId}`, {
+    method: 'POST',
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to queue processing'); }
+  return res.json();
+}
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+
+export async function exportClassExcel(classId, className) {
+  const res = await fetch(`${BASE_URL}/api/export/class/${classId}/excel`);
+  if (!res.ok) throw new Error('Export failed');
+  const blob = await res.blob();
+  const url  = window.URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${className.replace(/\s+/g,'_')}_grades.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+export async function exportPaperPDF(paperId, studentName) {
+  const res = await fetch(`${BASE_URL}/api/export/paper/${paperId}/pdf`);
+  if (!res.ok) throw new Error('Export failed');
+  const blob = await res.blob();
+  const url  = window.URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${(studentName||'student').replace(/\s+/g,'_')}_results.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
 }

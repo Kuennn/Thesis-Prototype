@@ -1,7 +1,7 @@
 # routers/classes.py
 # CRUD endpoints for Class management
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel
@@ -272,4 +272,133 @@ def _enrich_class(class_: Class, db: Session) -> dict:
         "description":   class_.description,
         "student_count": student_count,
         "exam_count":    exam_count,
+    }
+
+
+# ─── CSV Import ───────────────────────────────────────────────────────────────
+
+@router.get("/{class_id}/csv-template", summary="Download CSV template for student import")
+def download_csv_template(class_id: int, db: Session = Depends(get_db)):
+    """Returns a CSV template file the teacher fills in and uploads."""
+    from fastapi.responses import StreamingResponse
+    import io
+
+    class_ = db.query(Class).filter(Class.id == class_id).first()
+    if not class_:
+        raise HTTPException(status_code=404, detail="Class not found")
+
+    # Build template with header + 3 example rows
+    lines = [
+        "student_no,first_name,last_name,email",
+        "2021-00001,Juan,dela Cruz,juan.delacruz@school.edu",
+        "2021-00002,Maria,Santos,maria.santos@school.edu",
+        "2021-00003,Jose,Reyes,jose.reyes@school.edu",
+    ]
+    content  = "\n".join(lines)
+    filename = f"student_import_{class_.name.replace(' ', '_')}.csv"
+
+    return StreamingResponse(
+        io.StringIO(content),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.post("/{class_id}/import-csv", summary="Import students from CSV file")
+async def import_students_csv(
+    class_id: int,
+    file:     UploadFile = File(...),
+    db:       Session    = Depends(get_db),
+):
+    """
+    Reads a CSV file with columns: student_no, first_name, last_name, email
+    Creates new students and enrolls them in the class.
+    Skips duplicates — students already enrolled are not re-added.
+    Returns a summary: imported, skipped, errors.
+    """
+    import csv
+    import io
+
+    class_ = db.query(Class).filter(Class.id == class_id).first()
+    if not class_:
+        raise HTTPException(status_code=404, detail="Class not found")
+
+    if not file:
+        raise HTTPException(status_code=400, detail="No file uploaded")
+
+    content = await file.read()
+    try:
+        text = content.decode("utf-8-sig")  # utf-8-sig handles Excel BOM
+    except UnicodeDecodeError:
+        text = content.decode("latin-1")
+
+    reader  = csv.DictReader(io.StringIO(text))
+    headers = reader.fieldnames or []
+
+    # Normalize headers — lowercase, strip spaces
+    norm = [h.lower().strip() for h in headers]
+    required = {"student_no", "first_name", "last_name"}
+    if not required.issubset(set(norm)):
+        raise HTTPException(
+            status_code=400,
+            detail=f"CSV must have columns: student_no, first_name, last_name (and optionally email). "
+                   f"Found: {', '.join(headers)}"
+        )
+
+    imported = []
+    skipped  = []
+    errors   = []
+
+    for i, row in enumerate(reader, start=2):  # start=2 because row 1 is header
+        # Normalize row keys
+        row = {k.lower().strip(): v.strip() for k, v in row.items() if k}
+
+        student_no = row.get("student_no", "").strip()
+        first_name = row.get("first_name", "").strip()
+        last_name  = row.get("last_name",  "").strip()
+        email      = row.get("email",      "").strip() or None
+
+        if not student_no or not first_name or not last_name:
+            errors.append(f"Row {i}: missing required field (student_no, first_name, or last_name)")
+            continue
+
+        # Check if student already exists by student_no
+        student = db.query(Student).filter(Student.student_no == student_no).first()
+
+        if not student:
+            # Create new student
+            student = Student(
+                student_no = student_no,
+                first_name = first_name,
+                last_name  = last_name,
+                email      = email,
+            )
+            db.add(student)
+            db.flush()
+
+        # Check if already enrolled
+        existing_enrollment = db.query(ClassEnrollment).filter(
+            ClassEnrollment.class_id   == class_id,
+            ClassEnrollment.student_id == student.id,
+        ).first()
+
+        if existing_enrollment:
+            skipped.append(f"{first_name} {last_name} ({student_no}) — already enrolled")
+            continue
+
+        # Enroll
+        enrollment = ClassEnrollment(class_id=class_id, student_id=student.id)
+        db.add(enrollment)
+        imported.append(f"{first_name} {last_name} ({student_no})")
+
+    db.commit()
+
+    return {
+        "message":        f"Import complete for class '{class_.name}'",
+        "total_imported": len(imported),
+        "total_skipped":  len(skipped),
+        "total_errors":   len(errors),
+        "imported":       imported,
+        "skipped":        skipped,
+        "errors":         errors,
     }

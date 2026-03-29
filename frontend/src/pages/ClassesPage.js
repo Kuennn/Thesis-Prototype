@@ -4,6 +4,7 @@ import {
   getClassStudents, getAllStudents, createStudent,
   enrollStudent, unenrollStudent, searchStudents,
   getClassPerformance, getAllExams,
+  downloadCSVTemplate, importStudentsCSV,
 } from '../api/api';
 import './ClassesPage.css';
 
@@ -319,9 +320,43 @@ function ClassDetail({ class_, onBack, onEdit }) {
         <div className="tab-content">
           <div className="tab-actions">
             <span className="field-label">{students.length} enrolled</span>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
-              + Add Student
-            </button>
+            <div className="tab-actions-right">
+              <button className="btn btn-ghost btn-sm"
+                onClick={() => downloadCSVTemplate(class_.id, class_.name)}
+                title="Download CSV template">
+                ↓ CSV Template
+              </button>
+              <label className="btn btn-ghost btn-sm btn-csv-upload" title="Import from CSV">
+                ↑ Import CSV
+                <input
+                  type="file"
+                  accept=".csv"
+                  style={{ display: 'none' }}
+                  onChange={async e => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    try {
+                      const result = await importStudentsCSV(class_.id, file);
+                      setError('');
+                      await load();
+                      alert(
+                        `Import complete!\n` +
+                        `✓ Imported: ${result.total_imported}\n` +
+                        `⊘ Skipped: ${result.total_skipped}\n` +
+                        `✕ Errors: ${result.total_errors}` +
+                        (result.errors.length ? `\n\n${result.errors.join('\n')}` : '')
+                      );
+                    } catch (e) {
+                      setError(e.message);
+                    }
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+              <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
+                + Add Student
+              </button>
+            </div>
           </div>
           {students.length === 0 ? (
             <div className="tab-empty">
