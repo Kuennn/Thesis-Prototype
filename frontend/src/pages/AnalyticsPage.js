@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getAllClasses, getAllExams, getExamAnalytics, getAIAnalysis } from '../api/api';
+import { getAllClasses, getAllExams, getExamAnalytics, getAIAnalysis, exportClassExcel } from '../api/api';
 import './AnalyticsPage.css';
 
 // ─── Bar Chart ────────────────────────────────────────────────────────────────
@@ -61,6 +61,7 @@ export default function AnalyticsPage() {
   const [loadingExams,   setLoadingExams]   = useState(false);
   const [loadingData,    setLoadingData]    = useState(false);
   const [loadingAI,      setLoadingAI]      = useState(false);
+  const [exporting,      setExporting]      = useState(false);
   const [error,          setError]          = useState(null);
 
   // Load classes on mount
@@ -104,6 +105,18 @@ export default function AnalyticsPage() {
       .finally(() => setLoadingData(false));
   }, [selectedExamId]);
 
+  const handleExport = async () => {
+    if (!selectedClass || exporting) return;
+    setExporting(true);
+    try {
+      await exportClassExcel(selectedClass, selectedClassData?.name || 'class');
+    } catch (e) {
+      setError(`Export failed: ${e.message}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleAIAnalysis = async () => {
     if (!selectedExamId || loadingAI) return;
     setLoadingAI(true);
@@ -131,6 +144,17 @@ export default function AnalyticsPage() {
           <h1>Analytics</h1>
           <p>Score distributions, per-question accuracy, and AI-generated insights.</p>
         </div>
+        {selectedClass && (
+          <button className="btn btn-ghost" onClick={handleExport} disabled={exporting}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1v8M3.5 6L7 9.5 10.5 6" stroke="currentColor"
+                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M1 11h12" stroke="currentColor"
+                strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            {exporting ? 'Exporting...' : 'Export Excel'}
+          </button>
+        )}
       </div>
 
       {error && (

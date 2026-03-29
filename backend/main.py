@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from database.database import engine, Base
-from routers import exams, papers, results, ocr, analytics, classes, students, omr
+from routers import exams, papers, results, ocr, analytics, classes, students, omr, export
 import os
 
 Base.metadata.create_all(bind=engine)
@@ -30,10 +30,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-    "http://localhost:3000",
-    "https://pound-puzzles-garmin-reporter.trycloudflare.com",
-    ],
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,6 +47,7 @@ app.include_router(results.router)
 app.include_router(ocr.router)
 app.include_router(omr.router)
 app.include_router(analytics.router)
+app.include_router(export.router)
 
 @app.get("/", tags=["Health"])
 def root():
