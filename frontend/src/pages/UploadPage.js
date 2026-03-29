@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import UploadZone from '../components/UploadZone';
 import ImagePreviewGrid from '../components/ImagePreviewGrid';
 import SubmitPanel from '../components/SubmitPanel';
+import CameraCapture from '../components/CameraCapture';
 import {
   getAllClasses, getAllExams, getClassStudents, uploadPapers,
 } from '../api/api';
@@ -25,6 +26,7 @@ export default function UploadPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted,  setSubmitted]  = useState(false);
   const [error,      setError]      = useState(null);
+  const [showCamera, setShowCamera] = useState(false);
 
   // Load classes on mount
   useEffect(() => {
@@ -154,6 +156,19 @@ export default function UploadPage() {
           <p>Select a class, exam, and student — then upload the scanned answer sheet.</p>
         </div>
         <div className="upload-header-meta">
+          <button
+            className={`btn-camera ${showCamera ? 'btn-camera-active' : ''}`}
+            onClick={() => setShowCamera(s => !s)}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="1" y="4" width="14" height="10" rx="2"
+                stroke="currentColor" strokeWidth="1.3"/>
+              <circle cx="8" cy="9" r="2.5" stroke="currentColor" strokeWidth="1.3"/>
+              <path d="M5.5 4l1-2h3l1 2" stroke="currentColor"
+                strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {showCamera ? 'Hide Camera' : 'Use Camera'}
+          </button>
           <span className="meta-chip">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M7 1v6M7 10v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -280,10 +295,25 @@ export default function UploadPage() {
         </div>
       )}
 
-      {/* Upload zone */}
-      <div className="fade-up fade-up-delay-2">
-        <UploadZone onFilesSelected={addFiles} hasFiles={files.length > 0} />
-      </div>
+      {/* Camera — inline, shown when toggled */}
+      {showCamera && (
+        <div className="fade-up">
+          <CameraCapture
+            onCapture={file => {
+              addFiles([file]);
+              setShowCamera(false);
+            }}
+            onClose={() => setShowCamera(false)}
+          />
+        </div>
+      )}
+
+      {/* Upload zone — toggle tabs: drag-drop or camera */}
+      {!showCamera && (
+        <div className="fade-up fade-up-delay-2">
+          <UploadZone onFilesSelected={addFiles} hasFiles={files.length > 0} />
+        </div>
+      )}
 
       {/* Preview grid */}
       {files.length > 0 && (

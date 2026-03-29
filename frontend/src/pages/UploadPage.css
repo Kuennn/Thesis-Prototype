@@ -254,3 +254,82 @@
   background: rgba(26,26,24,0.1);
   flex-shrink: 0;
 }
+
+/* ─── Camera button ───────────────────────────────────────────────────────── */
+.btn-camera {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(82,183,136,0.4);
+  background: var(--accent-glow);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.btn-camera:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45,106,79,0.25);
+}
+
+.btn-camera-active {
+  background: var(--accent) !important;
+  color: white !important;
+  border-color: var(--accent) !important;
+}
+
+/* ─── Mobile portrait fixes ───────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .upload-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .upload-header-meta {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .btn-camera {
+    flex: 1 !important;
+    justify-content: center !important;
+  }
+
+  .meta-chip {
+    flex: 1 !important;
+    justify-content: center !important;
+  }
+
+  /* Upload selectors full width on mobile */
+  .upload-selectors .field-group {
+    width: 100% !important;
+  }
+
+  /* Summary chip wrap on mobile */
+  .upload-summary-chip {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+
+  .summary-chip-sep {
+    display: none !important;
+  }
+
+  .summary-chip-item {
+    flex: 1 !important;
+    min-width: 80px !important;
+  }
+}

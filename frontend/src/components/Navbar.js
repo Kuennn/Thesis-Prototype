@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './Navbar.css';
 
 const NAV_ITEMS = [
@@ -11,27 +11,40 @@ const NAV_ITEMS = [
 ];
 
 export default function Navbar({ activePage, setActivePage }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleNav = (id) => {
+    setActivePage(id);
+    setMenuOpen(false);
+  };
+
   return (
     <header className="navbar">
       <div className="navbar-inner">
-        <button className="navbar-brand" onClick={() => setActivePage('classes')}>
+        {/* Brand */}
+        <button className="navbar-brand" onClick={() => handleNav('classes')}>
           <span className="brand-icon" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <rect x="2" y="2" width="18" height="18" rx="4" stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M6 8h10M6 11h7M6 14h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              <circle cx="17" cy="15" r="3.5" fill="var(--accent)" stroke="var(--cream)" strokeWidth="1"/>
-              <path d="M15.8 15l.8.8 1.4-1.4" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
+              <rect x="2" y="2" width="18" height="18" rx="4"
+                stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M6 8h10M6 11h7M6 14h5" stroke="currentColor"
+                strokeWidth="1.5" strokeLinecap="round"/>
+              <circle cx="17" cy="15" r="3.5" fill="var(--accent)"
+                stroke="var(--cream)" strokeWidth="1"/>
+              <path d="M15.8 15l.8.8 1.4-1.4" stroke="white"
+                strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </span>
           <span className="brand-name">ExamCheck <em>AI</em></span>
         </button>
 
+        {/* Desktop nav */}
         <nav className="navbar-nav" aria-label="Main navigation">
           {NAV_ITEMS.map(item => (
             <button
               key={item.id}
               className={`nav-link ${activePage === item.id ? 'active' : ''}`}
-              onClick={() => setActivePage(item.id)}
+              onClick={() => handleNav(item.id)}
               aria-current={activePage === item.id ? 'page' : undefined}
             >
               {item.label}
@@ -39,11 +52,40 @@ export default function Navbar({ activePage, setActivePage }) {
           ))}
         </nav>
 
-        <div className="navbar-badge">
-          <span className="status-dot" aria-hidden="true" />
-          Teacher Mode
+        {/* Right side */}
+        <div className="navbar-right">
+          <div className="navbar-badge">
+            <span className="status-dot" aria-hidden="true" />
+            Teacher Mode
+          </div>
+          {/* Hamburger — mobile only */}
+          <button
+            className="hamburger"
+            onClick={() => setMenuOpen(o => !o)}
+            aria-label="Toggle menu"
+            aria-expanded={menuOpen}
+          >
+            <span className={`ham-line ${menuOpen ? 'open' : ''}`} />
+            <span className={`ham-line ${menuOpen ? 'open' : ''}`} />
+            <span className={`ham-line ${menuOpen ? 'open' : ''}`} />
+          </button>
         </div>
       </div>
+
+      {/* Mobile dropdown menu */}
+      {menuOpen && (
+        <div className="mobile-menu">
+          {NAV_ITEMS.map(item => (
+            <button
+              key={item.id}
+              className={`mobile-nav-link ${activePage === item.id ? 'active' : ''}`}
+              onClick={() => handleNav(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
     </header>
   );
 }

@@ -1,7 +1,7 @@
 // src/api/api.js
 // Central place for all backend API calls
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = 'https://tied-enable-sandy-occurring.trycloudflare.com';
 
 // ─── Classes ──────────────────────────────────────────────────────────────────
 

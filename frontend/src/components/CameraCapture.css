@@ -1,0 +1,392 @@
+/* ─── Inline Camera Capture ───────────────────────────────────────────────── */
+.camera-inline {
+  background: var(--white);
+  border: 1px solid rgba(26,26,24,0.1);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.camera-inline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(26,26,24,0.08);
+  background: var(--cream);
+}
+
+.camera-inline-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.camera-inline-sub {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.camera-inline-close {
+  background: none;
+  border: 1px solid rgba(26,26,24,0.15);
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-family: var(--font-body);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.camera-inline-close:hover {
+  background: var(--danger);
+  color: white;
+  border-color: transparent;
+}
+
+/* ── Idle / Requesting ──────────────────────────────────────────────────────── */
+.camera-idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 36px 24px;
+  text-align: center;
+}
+
+.camera-idle-icon {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--accent-glow);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.camera-idle p {
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  max-width: 300px;
+  line-height: 1.6;
+}
+
+.camera-spinner svg {
+  animation: spin 1s linear infinite;
+}
+
+/* ── Error ──────────────────────────────────────────────────────────────────── */
+.camera-error-inline {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  background: rgba(193,68,14,0.06);
+  border-top: 1px solid rgba(193,68,14,0.2);
+  color: var(--danger);
+}
+
+.camera-error-inline svg { flex-shrink: 0; margin-top: 2px; }
+
+.camera-error-inline strong {
+  display: block;
+  font-size: 0.88rem;
+  margin-bottom: 4px;
+}
+
+.camera-error-inline p {
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.camera-error-inline .btn-sm {
+  margin-left: auto;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* ── Live feed ──────────────────────────────────────────────────────────────── */
+.camera-live-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.camera-viewfinder {
+  position: relative;
+  background: #111;
+  width: 100%;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+}
+
+/* On portrait mobile — make it taller to show more of the paper */
+@media (max-width: 768px) and (orientation: portrait) {
+  .camera-viewfinder {
+    aspect-ratio: 3/4;
+    max-height: 65vh;
+  }
+}
+
+/* On landscape mobile — keep wide */
+@media (max-width: 900px) and (orientation: landscape) {
+  .camera-viewfinder {
+    aspect-ratio: 16/9;
+    max-height: 55vh;
+  }
+}
+
+.camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Corner guide overlay */
+.camera-guides {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cg {
+  position: absolute;
+  width: 24px; height: 24px;
+  border: 2.5px solid rgba(255,255,255,0.9);
+}
+.cg.tl { top: 10%; left: 8%;  border-right: none; border-bottom: none; }
+.cg.tr { top: 10%; right: 8%; border-left: none;  border-bottom: none; }
+.cg.bl { bottom: 10%; left: 8%;  border-right: none; border-top: none; }
+.cg.br { bottom: 10%; right: 8%; border-left: none;  border-top: none; }
+
+@media (max-width: 768px) {
+  .cg { width: 32px; height: 32px; border-width: 3px; }
+  .cg.tl { top: 6%; left: 4%; }
+  .cg.tr { top: 6%; right: 4%; }
+  .cg.bl { bottom: 6%; left: 4%; }
+  .cg.br { bottom: 6%; right: 4%; }
+}
+
+.cg-label {
+  position: absolute;
+  bottom: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.8);
+  background: rgba(0,0,0,0.45);
+  padding: 3px 12px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+/* Camera controls bar */
+.camera-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  background: var(--cream);
+  border-top: 1px solid rgba(26,26,24,0.08);
+}
+
+.btn-flip {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(26,26,24,0.15);
+  background: var(--white);
+  color: var(--ink-muted);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+}
+.btn-flip:hover { background: var(--cream-dark); color: var(--ink); }
+
+.btn-shutter {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--transition);
+}
+.btn-shutter:active { transform: scale(0.92); }
+
+.shutter-ring {
+  width: 62px; height: 62px;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  background: white;
+  transition: all var(--transition);
+}
+.btn-shutter:hover .shutter-ring { border-color: #236043; }
+
+.shutter-dot {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  background: var(--accent);
+  transition: background var(--transition);
+}
+.btn-shutter:hover .shutter-dot { background: #236043; }
+.btn-shutter:active .shutter-dot { background: #1a4a30; }
+
+/* ── Preview ────────────────────────────────────────────────────────────────── */
+.camera-preview-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.camera-preview-img-wrap {
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  line-height: 0;
+}
+
+.camera-preview-img {
+  width: 100%;
+  display: block;
+  border-radius: var(--radius-md);
+}
+
+.quality-pill {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 14px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+.qp-good { background: var(--accent-glow); color: var(--accent); }
+.qp-warn { background: rgba(234,159,39,0.18); color: #9a6700; }
+
+/* Quality bars */
+.quality-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--cream);
+  border-radius: var(--radius-sm);
+}
+
+.qb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.qb-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.qb-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(26,26,24,0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.qb-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.qb-val {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  width: 48px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.camera-preview-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* Shared btn (fallback) */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-body); font-size: 0.88rem; font-weight: 500;
+  padding: 8px 18px; border-radius: var(--radius-sm);
+  border: 1px solid transparent; cursor: pointer;
+  transition: all var(--transition); white-space: nowrap;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-ghost {
+  background: transparent; color: var(--ink-muted);
+  border-color: rgba(26,26,24,0.15);
+}
+.btn-ghost:hover:not(:disabled) { background: var(--cream-dark); color: var(--ink); }
+.btn-primary {
+  background: var(--accent); color: white; border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(45,106,79,0.25);
+}
+.btn-primary:hover:not(:disabled) {
+  background: #236043;
+  box-shadow: 0 4px 16px rgba(45,106,79,0.35);
+  transform: translateY(-1px);
+}
+.btn-sm { padding: 5px 12px !important; font-size: 0.78rem !important; }
+
+/* Spin animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ─── Capture area highlight ──────────────────────────────────────────────── */
+/* Dim the area outside the guides to make capture area obvious */
+.camera-guides::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  /* Cut out the inner capture area */
+  -webkit-mask:
+    linear-gradient(#fff 0 0) 8% 6% / 84% 88% no-repeat,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask:
+    linear-gradient(#fff 0 0) 8% 6% / 84% 88% no-repeat,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .camera-guides::before {
+    -webkit-mask:
+      linear-gradient(#fff 0 0) 4% 6% / 92% 88% no-repeat,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: destination-out;
+    mask:
+      linear-gradient(#fff 0 0) 4% 6% / 92% 88% no-repeat,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+  }
+}
+
+/* Make guide label more readable on mobile */
+@media (max-width: 768px) {
+  .cg-label {
+    font-size: 0.68rem;
+    padding: 3px 10px;
+    bottom: 4%;
+  }
+}

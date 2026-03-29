@@ -32,6 +32,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -42,6 +43,7 @@ body {
   line-height: 1.6;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 /* Grain texture overlay */
@@ -109,3 +111,99 @@ img {
 .fade-up-delay-1 { animation-delay: 0.08s; }
 .fade-up-delay-2 { animation-delay: 0.16s; }
 .fade-up-delay-3 { animation-delay: 0.24s; }
+
+/* ─── Global Mobile Responsive ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Page containers */
+  .upload-page, .exams-page, .results-page,
+  .analytics-page, .classes-page, .answer-sheet-page {
+    padding: 24px 16px 60px !important;
+  }
+
+  /* Page headings */
+  .upload-header, .exams-header, .results-header,
+  .analytics-header, .classes-header, .as-header {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  /* Summary grids */
+  .summary-grid, .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Results body — stack panels vertically */
+  .results-body {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Charts row — stack vertically */
+  .charts-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Upload selectors — stack */
+  .upload-selectors {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Classes grid */
+  .classes-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Student table — horizontal scroll */
+  .student-table-header,
+  .student-table-row {
+    grid-template-columns: 80px 1fr 60px 60px 70px !important;
+    font-size: 0.78rem !important;
+  }
+  .student-email { display: none !important; }
+
+  /* Ranking table */
+  .ranking-header,
+  .ranking-row {
+    grid-template-columns: 28px 1fr 60px 60px 60px !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* Detail panel sticky fix on mobile */
+  .detail-panel { position: static !important; }
+
+  /* Form rows */
+  .form-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Upload header meta — stack */
+  .upload-header-meta {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* Analytics controls */
+  .analytics-controls {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Class detail stats */
+  .detail-stats {
+    gap: 10px !important;
+  }
+  .dstat {
+    flex: 1 !important;
+    min-width: 80px !important;
+    padding: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .summary-grid, .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .summary-value, .stat-value {
+    font-size: 1.2rem !important;
+  }
+  .btn { padding: 8px 12px !important; font-size: 0.82rem !important; }
+}
