@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from database.database import engine, Base
-from routers import exams, papers, results, ocr, analytics, classes, students, omr, export
+from routers import exams, papers, results, ocr, analytics, classes, students, omr, export, auth
 import os
 
 Base.metadata.create_all(bind=engine)
@@ -39,6 +39,7 @@ app.add_middleware(
 os.makedirs("uploaded_papers", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploaded_papers"), name="uploads")
 
+app.include_router(auth.router)
 app.include_router(classes.router)
 app.include_router(students.router)
 app.include_router(exams.router)

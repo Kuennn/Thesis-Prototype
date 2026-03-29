@@ -219,3 +219,123 @@ def delete_paper(paper_id: int, db: Session = Depends(get_db)):
     db.delete(paper)
     db.commit()
     return {"message": "Paper deleted successfully"}
+
+
+@router.post("/upload-batch", summary="Batch upload — auto-match files to enrolled students")
+async def upload_batch(
+    exam_id: int              = Form(...),
+    papers:  List[UploadFile] = File(...),
+    db:      Session          = Depends(get_db),
+):
+    """
+    Upload multiple papers for an exam at once.
+    Auto-matches each file to an enrolled student by filename.
+
+    Matching order:
+      1. Student number found anywhere in filename  (2023-00001.jpg)
+      2. Last name fuzzy match                      (delacruz.jpg)
+      3. Full name fuzzy match > 70%                (juan_dela_cruz.jpg)
+
+    Unmatched files are saved with status 'uploaded' and no student_id.
+    """
+    from difflib import SequenceMatcher
+    import re
+
+    exam = db.query(Exam).filter(Exam.id == exam_id).first()
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+
+    # Get enrolled students for this class
+    enrolled = []
+    if exam.class_id:
+        from models.models import ClassEnrollment
+        enrollments = db.query(ClassEnrollment).filter(
+            ClassEnrollment.class_id == exam.class_id
+        ).all()
+        enrolled = [e.student for e in enrollments]
+
+    def match_student(filename: str):
+        base = os.path.splitext(filename)[0].lower()
+        base = re.sub(r'[_\-\s\.]+', ' ', base).strip()
+
+        # Strategy 1: student number
+        for student in enrolled:
+            sno = re.sub(r'[^0-9]', '', student.student_no)
+            if sno and sno in re.sub(r'[^0-9]', '', base):
+                return student
+
+        # Strategy 2: last name
+        for student in enrolled:
+            last = student.last_name.lower().replace(' ', '')
+            base_clean = base.replace(' ', '')
+            if last in base_clean:
+                return student
+            if SequenceMatcher(None, last, base_clean).ratio() > 0.85:
+                return student
+
+        # Strategy 3: full name fuzzy
+        best_ratio, best_student = 0, None
+        for student in enrolled:
+            full  = f"{student.first_name} {student.last_name}".lower()
+            ratio = SequenceMatcher(None, full, base).ratio()
+            if ratio > best_ratio:
+                best_ratio, best_student = ratio, student
+        return best_student if best_ratio > 0.70 else None
+
+    saved, errors = [], []
+
+    for upload in papers:
+        if upload.content_type not in ALLOWED_TYPES:
+            errors.append(f"{upload.filename}: unsupported type"); continue
+
+        content = await upload.read()
+        if len(content) > MAX_FILE_SIZE:
+            errors.append(f"{upload.filename}: exceeds 20MB"); continue
+
+        ext         = os.path.splitext(upload.filename)[1].lower() or ".jpg"
+        unique_name = f"{uuid.uuid4().hex}{ext}"
+        save_path   = os.path.join(UPLOAD_DIR, unique_name)
+
+        with open(save_path, "wb") as f:
+            f.write(content)
+
+        try:
+            with Image.open(save_path) as img:
+                img.verify()
+        except Exception:
+            os.remove(save_path)
+            errors.append(f"{upload.filename}: invalid image"); continue
+
+        matched   = match_student(upload.filename)
+        s_id      = matched.id   if matched else None
+        s_name    = f"{matched.first_name} {matched.last_name}" if matched else None
+
+        paper = StudentPaper(
+            exam_id      = exam_id,
+            student_id   = s_id,
+            student_name = s_name or upload.filename,
+            image_path   = save_path,
+            status       = PaperStatus.uploaded,
+        )
+        db.add(paper)
+        db.flush()
+
+        for q in db.query(Question).filter(Question.exam_id == exam_id).all():
+            db.add(StudentAnswer(paper_id=paper.id, question_id=q.id))
+
+        saved.append({
+            "paper_id":    paper.id,
+            "filename":    upload.filename,
+            "matched_to":  s_name or "Unmatched",
+            "student_id":  s_id,
+            "auto_matched": matched is not None,
+        })
+
+    db.commit()
+    return {
+        "message":         f"{len(saved)} paper(s) uploaded for '{exam.name}'",
+        "exam_id":         exam_id,
+        "papers":          saved,
+        "errors":          errors,
+        "unmatched_count": sum(1 for p in saved if not p["auto_matched"]),
+    }

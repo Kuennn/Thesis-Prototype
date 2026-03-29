@@ -326,22 +326,37 @@ export default function ResultsPage() {
   };
 
   const handleProcessAll = async () => {
-    if (!selectedExamId) return;
-    const unprocessed = papers.filter(p =>
-      p.status === 'uploaded' || p.status === 'error'
-    );
-    if (unprocessed.length === 0) {
-      setError('No unprocessed papers found.');
-      return;
-    }
+    if (!selectedExamId || papers.length === 0) return;
     setError(null);
     try {
       const result = await processExamPapers(selectedExamId);
-      alert(`${result.queued} paper(s) queued for processing. Results will update automatically — refresh in a minute.`);
+      if (result.queued === 0) {
+        setError('No papers to process — all are already graded.');
+        return;
+      }
+      alert(`✓ ${result.queued} paper(s) queued for OCR.\nRefresh in a minute to see updated results.`);
       refreshPapers();
     } catch (e) {
-      setError(`Failed to queue: ${e.message}`);
+      setError(`Run OCR All failed: ${e.message}`);
     }
+  };
+
+  const handleOMRAll = async () => {
+    if (!selectedExamId || papers.length === 0) return;
+    setError(null);
+    let done = 0, skipped = 0;
+    for (const paper of papers) {
+      try {
+        await scanQRCode(paper.id);
+        await detectBubbles(paper.id);
+        done++;
+      } catch {
+        // Paper has no QR / no bubble map — skip silently
+        skipped++;
+      }
+    }
+    refreshPapers();
+    alert(`OMR scan complete.\n✓ Processed: ${done}\n⊘ Skipped: ${skipped}`);
   };
 
   const handleDeletePaper = async (paper, e) => {
@@ -465,10 +480,17 @@ export default function ResultsPage() {
             <span className="field-label">
               {papers.length} paper{papers.length !== 1 ? 's' : ''}
             </span>
-            {papers.some(p => p.status === 'uploaded' || p.status === 'error') && (
-              <button className="btn btn-process btn-sm" onClick={handleProcessAll}>
-                ▶ Run OCR All
-              </button>
+            {papers.length > 0 && (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button className="btn btn-process btn-sm"
+                  onClick={handleProcessAll} title="Run OCR on all papers — skips already graded">
+                  ▶ Run OCR All
+                </button>
+                <button className="btn btn-process btn-sm"
+                  onClick={handleOMRAll} title="Run OMR bubble scan on all papers — skips incompatible ones">
+                  ◉ Run OMR All
+                </button>
+              </div>
             )}
           </div>
 
