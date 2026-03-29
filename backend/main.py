@@ -1,5 +1,5 @@
 # main.py
-# Entry point for the ExamCheck AI backend — Phase 5: Class Management
+# Entry point for the GrAid backend — Phase 5: Class Management
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,7 +11,7 @@ import os
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="ExamCheck AI — Backend API",
+    title="GrAid — Backend API",
     description="""
     Backend for the Hybrid Automated Examination Checking System.
 
@@ -54,7 +54,7 @@ app.include_router(export.router)
 def root():
     return {
         "status":  "running",
-        "message": "ExamCheck AI backend is live",
+        "message": "GrAid backend is live",
         "version": "3.0.0 — Phase 5 Class Management",
         "docs":    "Visit /docs to explore the API",
     }

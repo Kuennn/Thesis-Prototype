@@ -1,102 +1,130 @@
 {
   "exam_id": 1,
-  "token": "901ec0d13d00ff6d",
+  "exam_name": "Midterm Exam",
+  "page_w_pt": 595.2755905511812,
+  "page_h_pt": 841.8897637795277,
+  "bubble_r": 7.0,
+  "generated": "2026-03-30T02:44:04.002254",
   "bubbles": [
     {
       "question_no": 1,
-      "question_type": "multiple_choice",
       "choice": "A",
-      "x": 90.71,
-      "y": 664.72,
-      "r": 12.76
+      "x": 82.0236220472441,
+      "y": 682.3700787401576,
+      "r": 7.0,
+      "x_norm": 0.137791,
+      "y_norm": 0.810522,
+      "r_norm": 0.011759
     },
     {
       "question_no": 1,
-      "question_type": "multiple_choice",
       "choice": "B",
-      "x": 124.72,
-      "y": 664.72,
-      "r": 12.76
+      "x": 106.5236220472441,
+      "y": 682.3700787401576,
+      "r": 7.0,
+      "x_norm": 0.178948,
+      "y_norm": 0.810522,
+      "r_norm": 0.011759
     },
     {
       "question_no": 1,
-      "question_type": "multiple_choice",
       "choice": "C",
-      "x": 158.74,
-      "y": 664.72,
-      "r": 12.76
+      "x": 131.0236220472441,
+      "y": 682.3700787401576,
+      "r": 7.0,
+      "x_norm": 0.220106,
+      "y_norm": 0.810522,
+      "r_norm": 0.011759
     },
     {
       "question_no": 1,
-      "question_type": "multiple_choice",
       "choice": "D",
-      "x": 192.76,
-      "y": 664.72,
-      "r": 12.76
+      "x": 155.5236220472441,
+      "y": 682.3700787401576,
+      "r": 7.0,
+      "x_norm": 0.261263,
+      "y_norm": 0.810522,
+      "r_norm": 0.011759
     },
     {
       "question_no": 2,
-      "question_type": "multiple_choice",
       "choice": "A",
-      "x": 90.71,
-      "y": 633.54,
-      "r": 12.76
+      "x": 328.6377952755906,
+      "y": 682.3700787401576,
+      "r": 7.0,
+      "x_norm": 0.552077,
+      "y_norm": 0.810522,
+      "r_norm": 0.011759
     },
     {
       "question_no": 2,
-      "question_type": "multiple_choice",
       "choice": "B",
-      "x": 124.72,
-      "y": 633.54,
-      "r": 12.76
+      "x": 353.1377952755906,
+      "y": 682.3700787401576,
+      "r": 7.0,
+      "x_norm": 0.593234,
+      "y_norm": 0.810522,
+      "r_norm": 0.011759
     },
     {
       "question_no": 2,
-      "question_type": "multiple_choice",
       "choice": "C",
-      "x": 158.74,
-      "y": 633.54,
-      "r": 12.76
+      "x": 377.6377952755906,
+      "y": 682.3700787401576,
+      "r": 7.0,
+      "x_norm": 0.634392,
+      "y_norm": 0.810522,
+      "r_norm": 0.011759
     },
     {
       "question_no": 2,
-      "question_type": "multiple_choice",
       "choice": "D",
-      "x": 192.76,
-      "y": 633.54,
-      "r": 12.76
+      "x": 402.1377952755906,
+      "y": 682.3700787401576,
+      "r": 7.0,
+      "x_norm": 0.675549,
+      "y_norm": 0.810522,
+      "r_norm": 0.011759
     },
     {
       "question_no": 3,
-      "question_type": "true_or_false",
       "choice": "True",
-      "x": 90.71,
-      "y": 602.36,
-      "r": 12.76
+      "x": 82.0236220472441,
+      "y": 628.3700787401576,
+      "r": 7.0,
+      "x_norm": 0.137791,
+      "y_norm": 0.74638,
+      "r_norm": 0.011759
     },
     {
       "question_no": 3,
-      "question_type": "true_or_false",
       "choice": "False",
-      "x": 151.94,
-      "y": 602.36,
-      "r": 12.76
+      "x": 106.5236220472441,
+      "y": 628.3700787401576,
+      "r": 7.0,
+      "x_norm": 0.178948,
+      "y_norm": 0.74638,
+      "r_norm": 0.011759
     },
     {
       "question_no": 4,
-      "question_type": "true_or_false",
       "choice": "True",
-      "x": 90.71,
-      "y": 571.18,
-      "r": 12.76
+      "x": 328.6377952755906,
+      "y": 628.3700787401576,
+      "r": 7.0,
+      "x_norm": 0.552077,
+      "y_norm": 0.74638,
+      "r_norm": 0.011759
     },
     {
       "question_no": 4,
-      "question_type": "true_or_false",
       "choice": "False",
-      "x": 151.94,
-      "y": 571.18,
-      "r": 12.76
+      "x": 353.1377952755906,
+      "y": 628.3700787401576,
+      "r": 7.0,
+      "x_norm": 0.593234,
+      "y_norm": 0.74638,
+      "r_norm": 0.011759
     }
   ]
 }

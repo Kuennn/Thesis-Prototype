@@ -138,7 +138,7 @@ export default function Navbar({ activePage, setActivePage }) {
                   strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </span>
-            <span className="brand-name">ExamCheck <em>AI</em></span>
+            <span className="brand-name">Gr<em>Aid</em></span>
           </button>
 
           {/* Desktop nav */}

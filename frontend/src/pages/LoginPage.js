@@ -46,8 +46,8 @@ export default function LoginPage() {
             </svg>
           </div>
           <div>
-            <h1 className="login-brand-name">ExamCheck <em>AI</em></h1>
-            <p className="login-brand-sub">Hybrid Examination Checking System</p>
+            <h1 className="login-brand-name">Gr<em>Aid</em></h1>
+            <p className="login-brand-sub">AI-Powered Examination Checker</p>
           </div>
         </div>
 
