@@ -1,0 +1,179 @@
+OCR Accuracy Comparison Log
+Image: uploaded_papers\08054aeaeaa3402888ad0e23b6664004.jpg
+Regions detected: 29
+============================================================
+
+Region 1:
+  EasyOCR : Midterm Exam
+  TrOCR   : Midterm Exam
+  Selected: Midterm Exam
+  Confidence: 0.8
+
+Region 2:
+  EasyOCR : Mema
+  TrOCR   : mema
+  Selected: mema
+  Confidence: 1.0
+
+Region 3:
+  EasyOCR : Hanni Pham
+  TrOCR   : Hanni Pham
+  Selected: Hanni Pham
+  Confidence: 0.988
+
+Region 4:
+  EasyOCR : March 29, 2026
+  TrOCR   : March 29 , 2026
+  Selected: March 29 , 2026
+  Confidence: 0.85
+
+Region 5:
+  EasyOCR : Name:
+  TrOCR   : name :
+  Selected: name :
+  Confidence: 0.999
+
+Region 6:
+  EasyOCR : Date:
+  TrOCR   : date :
+  Selected: date :
+  Confidence: 1.0
+
+Region 7:
+  EasyOCR : INSTRUCTIONS: Fill bubbles completely for MCITIF. Write clearly in lined areas
+  TrOCR   : INSTRUCTIONS : Fill bubbles completely for MCTYF. Write clearly in lined areas .
+  Selected: INSTRUCTIONS : Fill bubbles completely for MCTYF. Write clearly in lined areas .
+  Confidence: 0.695
+
+Region 8:
+  EasyOCR : D)
+  TrOCR   : 5
+  Selected: 5
+  Confidence: 0.329
+
+Region 9:
+  EasyOCR : 9
+  TrOCR   : 8
+  Selected: 8
+  Confidence: 0.345
+
+Region 10:
+  EasyOCR : True
+  TrOCR   : i True
+  Selected: i True
+  Confidence: 1.0
+
+Region 11:
+  EasyOCR : False
+  TrOCR   : i False
+  Selected: i False
+  Confidence: 1.0
+
+Region 12:
+  EasyOCR : 3
+  TrOCR   : 3-
+  Selected: 3-
+  Confidence: 0.641
+
+Region 13:
+  EasyOCR : 4.
+  TrOCR   : 4-
+  Selected: 4-
+  Confidence: 0.972
+
+Region 14:
+  EasyOCR : True
+  TrOCR   : True
+  Selected: True
+  Confidence: 1.0
+
+Region 15:
+  EasyOCR : False
+  TrOCR   : false
+  Selected: false
+  Confidence: 0.855
+
+Region 16:
+  EasyOCR : Processor
+  TrOCR   : processor
+  Selected: processor
+  Confidence: 0.999
+
+Region 17:
+  EasyOCR : Answer:
+  TrOCR   : answer :
+  Selected: answer :
+  Confidence: 0.994
+
+Region 18:
+  EasyOCR : 5.
+  TrOCR   : 5-
+  Selected: 5-
+  Confidence: 0.833
+
+Region 19:
+  EasyOCR : Answer: Operating System
+  TrOCR   : Answer . Operating System
+  Selected: Answer . Operating System
+  Confidence: 0.924
+
+Region 20:
+  EasyOCR : 6.
+  TrOCR   : 6-
+  Selected: 6-
+  Confidence: 0.771
+
+Region 21:
+  EasyOCR : Essay (5.0 pts)
+  TrOCR   : Essay 15.0 pts )
+  Selected: Essay 15.0 pts )
+  Confidence: 0.978
+
+Region 22:
+  EasyOCR : 7
+  TrOCR   : 7-
+  Selected: 7-
+  Confidence: 1.0
+
+Region 23:
+  EasyOCR : Hardware and software are both parts of a computer: Hardware is the
+  TrOCR   : Hardware and software are both parts of a computer . Hardware is the
+  Selected: Hardware and software are both parts of a computer . Hardware is the
+  Confidence: 0.608
+
+Region 24:
+  EasyOCR : keyboard and mouse: Software is the programs:
+  TrOCR   : keyboard and mouse . Software is the programs .
+  Selected: keyboard and mouse . Software is the programs .
+  Confidence: 0.805
+
+Region 25:
+  EasyOCR : Score_
+  TrOCR   : score :
+  Selected: score :
+  Confidence: 0.777
+
+Region 26:
+  EasyOCR : 5.0
+  TrOCR   : 5.50
+  Selected: 5.50
+  Confidence: 0.999
+
+Region 27:
+  EasyOCR : ExamCheck Al
+  TrOCR   : examCheck Al.
+  Selected: examCheck Al.
+  Confidence: 0.903
+
+Region 28:
+  EasyOCR : Automated Examination System
+  TrOCR   : Automated Examination System
+  Selected: Automated Examination System
+  Confidence: 0.999
+
+Region 29:
+  EasyOCR : Exam ID:
+  TrOCR   : exam ID :
+  Selected: exam ID :
+  Confidence: 0.999
+
