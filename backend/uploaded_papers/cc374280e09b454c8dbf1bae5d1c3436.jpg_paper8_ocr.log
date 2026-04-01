@@ -1,0 +1,65 @@
+OCR Accuracy Comparison Log
+Image: uploaded_papers\cc374280e09b454c8dbf1bae5d1c3436.jpg
+Regions detected: 10
+============================================================
+
+Region 1:
+  EasyOCR : GrAId
+  TrOCR   : " GRAND .
+  Selected: " GRAND .
+  Confidence: 0.838
+
+Region 2:
+  EasyOCR : Answor Shoot
+  TrOCR   : Answer Shoot
+  Selected: Answer Shoot
+  Confidence: 0.989
+
+Region 3:
+  EasyOCR : S
+  TrOCR   : 2
+  Selected: 2
+  Confidence: 0.107
+
+Region 4:
+  EasyOCR : TrueoaFALSE 
+  TrOCR   : premonization
+  Selected: premonization
+  Confidence: 0.109
+
+Region 5:
+  EasyOCR : DeacatoN
+  TrOCR   : quantification .
+  Selected: quantification .
+  Confidence: 0.184
+
+Region 6:
+  EasyOCR : Tood
+  TrOCR   : food
+  Selected: food
+  Confidence: 0.793
+
+Region 7:
+  EasyOCR : +02
+  TrOCR   : sting
+  Selected: sting
+  Confidence: 0.122
+
+Region 8:
+  EasyOCR : Syst01
+  TrOCR   : system
+  Selected: system
+  Confidence: 0.304
+
+Region 9:
+  EasyOCR : pe+
+  TrOCR   : opera
+  Selected: opera
+  Confidence: 0.176
+
+Region 10:
+  EasyOCR : bc0l
+  TrOCR   : surgical
+  Selected: surgical
+  Confidence: 0.12
+

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import BASE_URL, { apiFetch } from '../config';
 import './Navbar.css';
-
-// Ordered by teacher workflow
 const NAV_ITEMS = [
   { id: 'classes',     label: 'Classes'       },
   { id: 'keys',        label: 'Answer Keys'   },
@@ -12,7 +11,6 @@ const NAV_ITEMS = [
   { id: 'analytics',   label: 'Analytics'     },
 ];
 
-const BASE_URL = 'http://localhost:8000';
 
 // ─── Change Password Modal ────────────────────────────────────────────────────
 function ChangePasswordModal({ onClose }) {
@@ -28,7 +26,7 @@ function ChangePasswordModal({ onClose }) {
     if (next.length < 6) { setErr('New password must be at least 6 characters.'); return; }
     setBusy(true); setErr(''); setMsg('');
     try {
-      const res = await fetch(`${BASE_URL}/api/auth/change-password`, {
+      const res = await apiFetch(`${BASE_URL}/api/auth/change-password`, {
         method:  'POST',
         headers: {
           'Content-Type':  'application/json',

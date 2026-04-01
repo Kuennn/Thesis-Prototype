@@ -6,7 +6,7 @@ import CameraCapture from '../components/CameraCapture';
 import { getAllClasses, getAllExams, getClassStudents, uploadPapers } from '../api/api';
 import './UploadPage.css';
 
-const BASE_URL = 'http://localhost:8000';
+import BASE_URL, { apiFetch } from '../config';
 
 export default function UploadPage() {
   // ── Selectors ─────────────────────────────────────────────────────────────
@@ -124,7 +124,7 @@ export default function UploadPage() {
         files.forEach(entry => formData.append('papers', entry.file));
         files.forEach(entry => updateFileStatus(entry.id, 'uploading'));
 
-        const res  = await fetch(`${BASE_URL}/api/papers/upload-batch`, {
+        const res  = await apiFetch(`${BASE_URL}/api/papers/upload-batch`, {
           method: 'POST', body: formData,
         });
         const data = await res.json();

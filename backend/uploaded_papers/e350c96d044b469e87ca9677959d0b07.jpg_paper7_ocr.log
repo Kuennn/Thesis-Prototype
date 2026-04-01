@@ -1,0 +1,71 @@
+OCR Accuracy Comparison Log
+Image: uploaded_papers\e350c96d044b469e87ca9677959d0b07.jpg
+Regions detected: 11
+============================================================
+
+Region 1:
+  EasyOCR : GrAld _ Answer Sheet
+  TrOCR   : " GRAID - Answer Sheet
+  Selected: " GRAID - Answer Sheet
+  Confidence: 0.689
+
+Region 2:
+  EasyOCR : 0r
+  TrOCR   : sars .
+  Selected: sars .
+  Confidence: 0.1
+
+Region 3:
+  EasyOCR : MulMpLE choce
+  TrOCR   : multifunction
+  Selected: multifunction
+  Confidence: 0.161
+
+Region 4:
+  EasyOCR : Trueor False
+  TrOCR   : transportation
+  Selected: transportation
+  Confidence: 0.306
+
+Region 5:
+  EasyOCR : DENMIFCATON
+  TrOCR   : post-measures .
+  Selected: post-measures .
+  Confidence: 0.169
+
+Region 6:
+  EasyOCR : Tood
+  TrOCR   : food
+  Selected: food
+  Confidence: 0.375
+
+Region 7:
+  EasyOCR : sts+er
+  TrOCR   : system .
+  Selected: system .
+  Confidence: 0.264
+
+Region 8:
+  EasyOCR : +;n9
+  TrOCR   : ting
+  Selected: ting
+  Confidence: 0.102
+
+Region 9:
+  EasyOCR : Ippt
+  TrOCR   : witsidentship
+  Selected: witsidentship
+  Confidence: 0.207
+
+Region 10:
+  EasyOCR : Hardlwavt
+  TrOCR   : hand more .
+  Selected: hand more .
+  Confidence: 0.636
+
+Region 11:
+  EasyOCR : nom
+  TrOCR   : marck .
+  Selected: marck .
+  Confidence: 0.143
+

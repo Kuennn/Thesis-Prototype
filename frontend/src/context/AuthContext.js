@@ -3,10 +3,9 @@
 // Stores JWT token in localStorage, provides login/logout functions
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import BASE_URL, { apiFetch } from '../config';
 
 const AuthContext = createContext(null);
-
-const BASE_URL = 'http://localhost:8000';
 
 export function AuthProvider({ children }) {
   const [token,       setToken]       = useState(localStorage.getItem('examcheck_token'));
@@ -16,7 +15,7 @@ export function AuthProvider({ children }) {
   // Verify token on mount
   useEffect(() => {
     if (!token) { setLoading(false); return; }
-    fetch(`${BASE_URL}/api/auth/me`, {
+    apiFetch(`${BASE_URL}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => {
@@ -39,7 +38,7 @@ export function AuthProvider({ children }) {
     form.append('username', username);
     form.append('password', password);
 
-    const res = await fetch(`${BASE_URL}/api/auth/login`, {
+    const res = await apiFetch(`${BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: form,

@@ -1,24 +1,23 @@
 // src/api/api.js
 // Central place for all backend API calls
-
-const BASE_URL = 'http://localhost:8000';
+import BASE_URL, { apiFetch } from '../config';
 
 // ─── Classes ──────────────────────────────────────────────────────────────────
 
 export async function getAllClasses() {
-  const res = await fetch(`${BASE_URL}/api/classes/`);
+  const res = await apiFetch(`${BASE_URL}/api/classes/`);
   if (!res.ok) throw new Error('Failed to fetch classes');
   return res.json();
 }
 
 export async function getClass(classId) {
-  const res = await fetch(`${BASE_URL}/api/classes/${classId}`);
+  const res = await apiFetch(`${BASE_URL}/api/classes/${classId}`);
   if (!res.ok) throw new Error('Class not found');
   return res.json();
 }
 
 export async function createClass(data) {
-  const res = await fetch(`${BASE_URL}/api/classes/`, {
+  const res = await apiFetch(`${BASE_URL}/api/classes/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -28,7 +27,7 @@ export async function createClass(data) {
 }
 
 export async function updateClass(classId, data) {
-  const res = await fetch(`${BASE_URL}/api/classes/${classId}`, {
+  const res = await apiFetch(`${BASE_URL}/api/classes/${classId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -38,31 +37,31 @@ export async function updateClass(classId, data) {
 }
 
 export async function deleteClass(classId) {
-  const res = await fetch(`${BASE_URL}/api/classes/${classId}`, { method: 'DELETE' });
+  const res = await apiFetch(`${BASE_URL}/api/classes/${classId}`, { method: 'DELETE' });
   if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to delete class'); }
   return res.json();
 }
 
 export async function getClassStudents(classId) {
-  const res = await fetch(`${BASE_URL}/api/classes/${classId}/students`);
+  const res = await apiFetch(`${BASE_URL}/api/classes/${classId}/students`);
   if (!res.ok) throw new Error('Failed to fetch students');
   return res.json();
 }
 
 export async function enrollStudent(classId, studentId) {
-  const res = await fetch(`${BASE_URL}/api/classes/${classId}/enroll/${studentId}`, { method: 'POST' });
+  const res = await apiFetch(`${BASE_URL}/api/classes/${classId}/enroll/${studentId}`, { method: 'POST' });
   if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to enroll student'); }
   return res.json();
 }
 
 export async function unenrollStudent(classId, studentId) {
-  const res = await fetch(`${BASE_URL}/api/classes/${classId}/enroll/${studentId}`, { method: 'DELETE' });
+  const res = await apiFetch(`${BASE_URL}/api/classes/${classId}/enroll/${studentId}`, { method: 'DELETE' });
   if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to remove student'); }
   return res.json();
 }
 
 export async function getClassPerformance(classId) {
-  const res = await fetch(`${BASE_URL}/api/classes/${classId}/performance`);
+  const res = await apiFetch(`${BASE_URL}/api/classes/${classId}/performance`);
   if (!res.ok) throw new Error('Failed to fetch performance');
   return res.json();
 }
@@ -70,19 +69,19 @@ export async function getClassPerformance(classId) {
 // ─── Students ─────────────────────────────────────────────────────────────────
 
 export async function getAllStudents() {
-  const res = await fetch(`${BASE_URL}/api/students/`);
+  const res = await apiFetch(`${BASE_URL}/api/students/`);
   if (!res.ok) throw new Error('Failed to fetch students');
   return res.json();
 }
 
 export async function getStudent(studentId) {
-  const res = await fetch(`${BASE_URL}/api/students/${studentId}`);
+  const res = await apiFetch(`${BASE_URL}/api/students/${studentId}`);
   if (!res.ok) throw new Error('Student not found');
   return res.json();
 }
 
 export async function createStudent(data) {
-  const res = await fetch(`${BASE_URL}/api/students/`, {
+  const res = await apiFetch(`${BASE_URL}/api/students/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -92,7 +91,7 @@ export async function createStudent(data) {
 }
 
 export async function updateStudent(studentId, data) {
-  const res = await fetch(`${BASE_URL}/api/students/${studentId}`, {
+  const res = await apiFetch(`${BASE_URL}/api/students/${studentId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -102,13 +101,13 @@ export async function updateStudent(studentId, data) {
 }
 
 export async function deleteStudent(studentId) {
-  const res = await fetch(`${BASE_URL}/api/students/${studentId}`, { method: 'DELETE' });
+  const res = await apiFetch(`${BASE_URL}/api/students/${studentId}`, { method: 'DELETE' });
   if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to delete student'); }
   return res.json();
 }
 
 export async function searchStudents(query) {
-  const res = await fetch(`${BASE_URL}/api/students/search/${encodeURIComponent(query)}`);
+  const res = await apiFetch(`${BASE_URL}/api/students/search/${encodeURIComponent(query)}`);
   if (!res.ok) throw new Error('Search failed');
   return res.json();
 }
@@ -116,7 +115,7 @@ export async function searchStudents(query) {
 // ─── Exams ────────────────────────────────────────────────────────────────────
 
 export async function createExam(examData) {
-  const res = await fetch(`${BASE_URL}/api/exams/`, {
+  const res = await apiFetch(`${BASE_URL}/api/exams/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(examData),
@@ -129,19 +128,19 @@ export async function getAllExams(classId) {
   const url = classId
     ? `${BASE_URL}/api/exams/?class_id=${classId}`
     : `${BASE_URL}/api/exams/`;
-  const res = await fetch(url);
+  const res = await apiFetch(url);
   if (!res.ok) throw new Error('Failed to fetch exams');
   return res.json();
 }
 
 export async function getExam(examId) {
-  const res = await fetch(`${BASE_URL}/api/exams/${examId}`);
+  const res = await apiFetch(`${BASE_URL}/api/exams/${examId}`);
   if (!res.ok) throw new Error('Exam not found');
   return res.json();
 }
 
 export async function deleteExam(examId) {
-  const res = await fetch(`${BASE_URL}/api/exams/${examId}`, { method: 'DELETE' });
+  const res = await apiFetch(`${BASE_URL}/api/exams/${examId}`, { method: 'DELETE' });
   if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to delete exam'); }
   return res.json();
 }
@@ -159,7 +158,7 @@ export async function uploadPapers(examId, files, onFileProgress, studentId) {
     if (studentId) formData.append('student_id', studentId);
     formData.append('papers', entry.file);
     try {
-      const res = await fetch(`${BASE_URL}/api/papers/upload`, { method: 'POST', body: formData });
+      const res = await apiFetch(`${BASE_URL}/api/papers/upload`, { method: 'POST', body: formData });
       if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Upload failed'); }
       const data = await res.json();
       onFileProgress(entry.id, 'done');
@@ -173,13 +172,13 @@ export async function uploadPapers(examId, files, onFileProgress, studentId) {
 }
 
 export async function getPapersByExam(examId) {
-  const res = await fetch(`${BASE_URL}/api/papers/exam/${examId}`);
+  const res = await apiFetch(`${BASE_URL}/api/papers/exam/${examId}`);
   if (!res.ok) throw new Error('Failed to fetch papers');
   return res.json();
 }
 
 export async function deletePaper(paperId) {
-  const res = await fetch(`${BASE_URL}/api/papers/${paperId}`, { method: 'DELETE' });
+  const res = await apiFetch(`${BASE_URL}/api/papers/${paperId}`, { method: 'DELETE' });
   if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to delete paper'); }
   return res.json();
 }
@@ -187,7 +186,7 @@ export async function deletePaper(paperId) {
 // ─── Teacher Override ─────────────────────────────────────────────────────────
 
 export async function overrideScore(paperId, answerId, teacherScore, teacherNote) {
-  const res = await fetch(`${BASE_URL}/api/papers/${paperId}/override/${answerId}`, {
+  const res = await apiFetch(`${BASE_URL}/api/papers/${paperId}/override/${answerId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ teacher_score: teacherScore, teacher_note: teacherNote || null }),
@@ -199,7 +198,7 @@ export async function overrideScore(paperId, answerId, teacherScore, teacherNote
 // ─── OCR ──────────────────────────────────────────────────────────────────────
 
 export async function processPaper(paperId) {
-  const res = await fetch(`${BASE_URL}/api/ocr/process/${paperId}`, { method: 'POST' });
+  const res = await apiFetch(`${BASE_URL}/api/ocr/process/${paperId}`, { method: 'POST' });
   if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'OCR processing failed'); }
   return res.json();
 }
@@ -207,13 +206,13 @@ export async function processPaper(paperId) {
 // ─── Results ──────────────────────────────────────────────────────────────────
 
 export async function getExamSummary(examId) {
-  const res = await fetch(`${BASE_URL}/api/results/exam/${examId}/summary`);
+  const res = await apiFetch(`${BASE_URL}/api/results/exam/${examId}/summary`);
   if (!res.ok) throw new Error('Failed to fetch results');
   return res.json();
 }
 
 export async function getPaperResults(paperId) {
-  const res = await fetch(`${BASE_URL}/api/results/paper/${paperId}`);
+  const res = await apiFetch(`${BASE_URL}/api/results/paper/${paperId}`);
   if (!res.ok) throw new Error('Failed to fetch paper results');
   return res.json();
 }
@@ -221,13 +220,13 @@ export async function getPaperResults(paperId) {
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
 export async function getExamAnalytics(examId) {
-  const res = await fetch(`${BASE_URL}/api/analytics/exam/${examId}`);
+  const res = await apiFetch(`${BASE_URL}/api/analytics/exam/${examId}`);
   if (!res.ok) throw new Error('Failed to fetch analytics');
   return res.json();
 }
 
 export async function getAIAnalysis(examId) {
-  const res = await fetch(`${BASE_URL}/api/analytics/exam/${examId}/ai-analysis`, { method: 'POST' });
+  const res = await apiFetch(`${BASE_URL}/api/analytics/exam/${examId}/ai-analysis`, { method: 'POST' });
   if (!res.ok) throw new Error('Failed to get AI analysis');
   return res.json();
 }
@@ -235,13 +234,13 @@ export async function getAIAnalysis(examId) {
 // ─── OMR / Answer Sheets ──────────────────────────────────────────────────────
 
 export async function generateAnswerSheet(examId) {
-  const res = await fetch(`${BASE_URL}/api/omr/generate/${examId}`, { method: 'POST' });
+  const res = await apiFetch(`${BASE_URL}/api/omr/generate/${examId}`, { method: 'POST' });
   if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to generate answer sheet'); }
   return res.json();
 }
 
 export async function downloadAnswerSheet(examId, examName) {
-  const res = await fetch(`${BASE_URL}/api/omr/sheet/${examId}`);
+  const res = await apiFetch(`${BASE_URL}/api/omr/sheet/${examId}`);
   if (!res.ok) throw new Error('Failed to download answer sheet');
   const blob = await res.blob();
   const url  = window.URL.createObjectURL(blob);
@@ -255,13 +254,13 @@ export async function downloadAnswerSheet(examId, examName) {
 }
 
 export async function scanQRCode(paperId) {
-  const res = await fetch(`${BASE_URL}/api/omr/scan-qr/${paperId}`, { method: 'POST' });
+  const res = await apiFetch(`${BASE_URL}/api/omr/scan-qr/${paperId}`, { method: 'POST' });
   if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'QR scan failed'); }
   return res.json();
 }
 
 export async function detectBubbles(paperId) {
-  const res = await fetch(`${BASE_URL}/api/omr/detect-bubbles/${paperId}`, { method: 'POST' });
+  const res = await apiFetch(`${BASE_URL}/api/omr/detect-bubbles/${paperId}`, { method: 'POST' });
   if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Bubble detection failed'); }
   return res.json();
 }
@@ -269,7 +268,7 @@ export async function detectBubbles(paperId) {
 // ─── CSV Import ───────────────────────────────────────────────────────────────
 
 export async function downloadCSVTemplate(classId, className) {
-  const res = await fetch(`${BASE_URL}/api/classes/${classId}/csv-template`);
+  const res = await apiFetch(`${BASE_URL}/api/classes/${classId}/csv-template`);
   if (!res.ok) throw new Error('Failed to download template');
   const blob = await res.blob();
   const url  = window.URL.createObjectURL(blob);
@@ -285,7 +284,7 @@ export async function downloadCSVTemplate(classId, className) {
 export async function importStudentsCSV(classId, file) {
   const formData = new FormData();
   formData.append('file', file);
-  const res = await fetch(`${BASE_URL}/api/classes/${classId}/import-csv`, {
+  const res = await apiFetch(`${BASE_URL}/api/classes/${classId}/import-csv`, {
     method: 'POST',
     body: formData,
   });
@@ -296,7 +295,7 @@ export async function importStudentsCSV(classId, file) {
 // ─── Process all papers in exam ───────────────────────────────────────────────
 
 export async function processExamPapers(examId) {
-  const res = await fetch(`${BASE_URL}/api/ocr/process-exam/${examId}`, {
+  const res = await apiFetch(`${BASE_URL}/api/ocr/process-exam/${examId}`, {
     method: 'POST',
   });
   if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed to queue processing'); }
@@ -306,7 +305,7 @@ export async function processExamPapers(examId) {
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 export async function exportClassExcel(classId, className) {
-  const res = await fetch(`${BASE_URL}/api/export/class/${classId}/excel`);
+  const res = await apiFetch(`${BASE_URL}/api/export/class/${classId}/excel`);
   if (!res.ok) throw new Error('Export failed');
   const blob = await res.blob();
   const url  = window.URL.createObjectURL(blob);
@@ -320,7 +319,7 @@ export async function exportClassExcel(classId, className) {
 }
 
 export async function exportPaperPDF(paperId, studentName) {
-  const res = await fetch(`${BASE_URL}/api/export/paper/${paperId}/pdf`);
+  const res = await apiFetch(`${BASE_URL}/api/export/paper/${paperId}/pdf`);
   if (!res.ok) throw new Error('Export failed');
   const blob = await res.blob();
   const url  = window.URL.createObjectURL(blob);

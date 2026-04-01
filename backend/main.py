@@ -30,7 +30,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        # Cloudflare tunnel URLs — allow any trycloudflare.com or ngrok origin
+    ],
+    allow_origin_regex=r"https://.*\.(trycloudflare\.com|ngrok-free\.app|ngrok\.io)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

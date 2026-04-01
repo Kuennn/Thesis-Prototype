@@ -1,0 +1,53 @@
+OCR Accuracy Comparison Log
+Image: uploaded_papers\3f2c745f5f0a4c328acf873bab5b37c6.jpg
+Regions detected: 8
+============================================================
+
+Region 1:
+  EasyOCR : GrAld _ Answor Shgot
+  TrOCR   : GRAID - Answer Shoot
+  Selected: GRAID - Answer Shoot
+  Confidence: 0.632
+
+Region 2:
+  EasyOCR : Trudor FaLBB
+  TrOCR   : management
+  Selected: management
+  Confidence: 0.117
+
+Region 3:
+  EasyOCR : [DENMAICATION
+  TrOCR   : prearmamentation
+  Selected: prearmamentation
+  Confidence: 0.147
+
+Region 4:
+  EasyOCR : Tood
+  TrOCR   : food
+  Selected: food
+  Confidence: 0.87
+
+Region 5:
+  EasyOCR : Susten
+  TrOCR   : system .
+  Selected: system .
+  Confidence: 0.113
+
+Region 6:
+  EasyOCR : pera +;v9
+  TrOCR   : opera ting
+  Selected: opera ting
+  Confidence: 0.308
+
+Region 7:
+  EasyOCR : Esjayy
+  TrOCR   : offering
+  Selected: offering
+  Confidence: 0.101
+
+Region 8:
+  EasyOCR : Hardwavt
+  TrOCR   : hardware .
+  Selected: hardware .
+  Confidence: 0.55
+
