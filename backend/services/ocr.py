@@ -6,11 +6,6 @@
 #   Step 2: EasyOCR — detects WHERE text regions are on the page
 #   Step 3: TrOCR   — reads WHAT each text region says (better handwriting)
 #   Step 4: Combine — joins all regions into full extracted text
-#
-# Why hybrid:
-#   EasyOCR is great at finding text locations but struggles with messy handwriting
-#   TrOCR is great at reading handwriting but needs pre-cropped regions
-#   Together they produce significantly better results than either alone
 
 import cv2
 import numpy as np
@@ -20,12 +15,10 @@ import torch
 from PIL import Image
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
-# ─── Model Singletons ─────────────────────────────────────────────────────────
-# Both models are loaded once and reused — loading is slow the first time
-
-_easyocr_reader   = None
-_trocr_processor  = None
-_trocr_model      = None
+# ── Model Singletons ──────────────────────────────────────────────────────────
+_easyocr_reader  = None
+_trocr_processor = None
+_trocr_model     = None
 
 def get_easyocr():
     global _easyocr_reader
@@ -38,19 +31,19 @@ def get_easyocr():
 def get_trocr():
     global _trocr_processor, _trocr_model
     if _trocr_processor is None:
-        print("Loading TrOCR model (first run downloads ~300MB)...")
+        print("Loading TrOCR model (first run downloads ~1.3GB)...")
         _trocr_processor = TrOCRProcessor.from_pretrained(
-            "microsoft/trocr-base-handwritten"
+            "microsoft/trocr-large-handwritten"
         )
         _trocr_model = VisionEncoderDecoderModel.from_pretrained(
-            "microsoft/trocr-base-handwritten"
+            "microsoft/trocr-large-handwritten"
         )
-        _trocr_model.eval()  # Set to evaluation mode
+        _trocr_model.eval()
         print("TrOCR loaded.")
     return _trocr_processor, _trocr_model
 
 
-# ─── Image Preprocessing ──────────────────────────────────────────────────────
+# ── Image Preprocessing ───────────────────────────────────────────────────────
 
 def preprocess_image(image_path: str) -> np.ndarray:
     """
@@ -110,7 +103,7 @@ def deskew(image: np.ndarray) -> np.ndarray:
                           borderMode=cv2.BORDER_REPLICATE)
 
 
-# ─── TrOCR Region Reader ──────────────────────────────────────────────────────
+# ── TrOCR Region Reader ───────────────────────────────────────────────────────
 
 def read_region_with_trocr(image: np.ndarray, bbox: list) -> str:
     """
@@ -155,17 +148,12 @@ def read_region_with_trocr(image: np.ndarray, bbox: list) -> str:
         return ""
 
 
-# ─── Main Hybrid Extraction ───────────────────────────────────────────────────
+# ── Main Hybrid Extraction ────────────────────────────────────────────────────
 
-def extract_text_from_image(image_path: str, log_path: str = None) -> dict:
+def extract_text_from_image(image_path: str) -> dict:
     """
     Main function: Hybrid OCR pipeline.
     EasyOCR finds text regions, TrOCR reads each region.
-
-    Args:
-        image_path: Path to the image file to process
-        log_path:   Optional path to write an EasyOCR vs TrOCR comparison log.
-                    Used for Phase 6 accuracy evaluation.
 
     Returns:
         {
@@ -179,94 +167,60 @@ def extract_text_from_image(image_path: str, log_path: str = None) -> dict:
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"Image not found: {image_path}")
 
-    # Step 1: Preprocess image
+    # Preprocess — returns numpy array, no temp file needed
     processed = preprocess_image(image_path)
 
-    # Save preprocessed image temporarily
-    temp_path = image_path + "_preprocessed.png"
-    cv2.imwrite(temp_path, processed)
+    # EasyOCR can accept a numpy array directly — no disk write needed
+    # This avoids Windows file locking errors with temp files
+    reader       = get_easyocr()
+    easy_results = reader.readtext(processed, detail=1, paragraph=False)
 
-    try:
-        # Step 2: EasyOCR detects text regions
-        reader       = get_easyocr()
-        easy_results = reader.readtext(temp_path, detail=1, paragraph=False)
-
-        if not easy_results:
-            return {
-                "full_text":          "",
-                "lines":              [],
-                "average_confidence": 0.0,
-                "word_count":         0,
-                "ocr_method":         "hybrid",
-            }
-
-        # Step 3: TrOCR reads each detected region
-        proc_img = cv2.imread(temp_path)
-
-        lines       = []
-        confidences = []
-
-        for (bbox, easy_text, confidence) in easy_results:
-            if confidence < 0.1:
-                continue
-
-            trocr_text = read_region_with_trocr(proc_img, bbox)
-
-            # TrOCR for handwriting, EasyOCR as fallback if TrOCR returns empty
-            final_text = trocr_text if trocr_text else easy_text
-
-            if final_text:
-                lines.append({
-                    "text":       final_text,
-                    "easy_text":  easy_text,
-                    "trocr_text": trocr_text,
-                    "confidence": round(confidence, 3),
-                    "bbox":       bbox,
-                })
-                confidences.append(confidence)
-
-        # Step 4: Sort by vertical then horizontal position (top-left reading order)
-        lines.sort(key=lambda x: (
-            min(pt[1] for pt in x["bbox"]),
-            min(pt[0] for pt in x["bbox"]),
-        ))
-
-        # ── Accuracy comparison log ───────────────────────────────────────────
-        # Writes EasyOCR vs TrOCR side by side for every detected region.
-        # Used for Phase 6 evaluation and accuracy measurement.
-        if log_path:
-            try:
-                with open(log_path, "w", encoding="utf-8") as log:
-                    log.write("OCR Accuracy Comparison Log\n")
-                    log.write(f"Image: {image_path}\n")
-                    log.write(f"Regions detected: {len(lines)}\n")
-                    log.write("=" * 60 + "\n\n")
-                    for i, line in enumerate(lines, 1):
-                        log.write(f"Region {i}:\n")
-                        log.write(f"  EasyOCR : {line['easy_text']}\n")
-                        log.write(f"  TrOCR   : {line['trocr_text']}\n")
-                        log.write(f"  Selected: {line['text']}\n")
-                        log.write(f"  Confidence: {line['confidence']}\n\n")
-            except Exception as e:
-                print(f"Failed to write OCR log: {e}")
-
-        # Step 5: Combine all regions into full text
-        full_text      = " ".join([l["text"] for l in lines])
-        avg_confidence = round(
-            sum(confidences) / len(confidences), 3
-        ) if confidences else 0.0
-
+    if not easy_results:
         return {
-            "full_text":          full_text,
-            "lines":              lines,
-            "average_confidence": avg_confidence,
-            "word_count":         len(full_text.split()),
-            "ocr_method":         "hybrid (EasyOCR + TrOCR)",
+            "full_text":          "",
+            "lines":              [],
+            "average_confidence": 0.0,
+            "word_count":         0,
+            "ocr_method":         "hybrid",
         }
 
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+    lines       = []
+    confidences = []
+
+    for (bbox, easy_text, confidence) in easy_results:
+        if confidence < 0.1:
+            continue
+
+        trocr_text = read_region_with_trocr(processed, bbox)
+        final_text = trocr_text if trocr_text else easy_text
+
+        if final_text:
+            lines.append({
+                "text":       final_text,
+                "easy_text":  easy_text,
+                "trocr_text": trocr_text,
+                "confidence": round(confidence, 3),
+                "bbox":       bbox,
+            })
+            confidences.append(confidence)
+
+    lines.sort(key=lambda x: (
+        min(pt[1] for pt in x["bbox"]),
+        min(pt[0] for pt in x["bbox"]),
+    ))
+
+    full_text      = " ".join([l["text"] for l in lines])
+    avg_confidence = round(
+        sum(confidences) / len(confidences), 3
+    ) if confidences else 0.0
+
+    return {
+        "full_text":          full_text,
+        "lines":              lines,
+        "average_confidence": avg_confidence,
+        "word_count":         len(full_text.split()),
+        "ocr_method":         "hybrid (EasyOCR + TrOCR)",
+    }
 
 
 def extract_text_simple(image_path: str) -> str:

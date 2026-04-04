@@ -27,8 +27,7 @@ def process_paper(paper_id: int, db: Session = Depends(get_db)):
 
     try:
         # Step 1: OCR
-        log_path = paper.image_path + f"_paper{paper_id}_ocr.log"
-        ocr_result = extract_text_from_image(paper.image_path, log_path=log_path)
+        ocr_result = extract_text_from_image(paper.image_path)
         full_text  = ocr_result["full_text"]
 
         # Step 2: Load questions
@@ -140,8 +139,7 @@ def run_pipeline_background(paper_id: int):
         paper.status = PaperStatus.processing
         db.commit()
 
-        log_path = paper.image_path + f"_paper{paper_id}_ocr.log"
-        ocr_result = extract_text_from_image(paper.image_path, log_path=log_path)
+        ocr_result = extract_text_from_image(paper.image_path)
         full_text  = ocr_result["full_text"]
 
         questions = db.query(Question).filter(
@@ -194,10 +192,14 @@ def get_preprocessed_preview(paper_id: int, db: Session = Depends(get_db)):
 
     try:
         processed = preprocess_image(paper.image_path)
-        tmp       = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-        cv2.imwrite(tmp.name, processed)
-        return FileResponse(tmp.name, media_type="image/png",
-                            filename=f"preview_paper_{paper_id}.png")
+        # Use delete=False and manual cleanup to avoid Windows file lock
+        tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        tmp_path = tmp.name
+        tmp.close()  # Close handle before writing — prevents WinError 32
+        cv2.imwrite(tmp_path, processed)
+        return FileResponse(tmp_path, media_type="image/png",
+                            filename=f"preview_paper_{paper_id}.png",
+                            background=None)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Preview failed: {str(e)}")
 

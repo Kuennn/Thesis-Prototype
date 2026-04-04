@@ -1,0 +1,113 @@
+OCR Accuracy Comparison Log
+Image: uploaded_papers\36e2af765aed4018bc4a56943807afb8.jpg
+Regions detected: 18
+============================================================
+
+Region 1:
+  EasyOCR : DrAid
+  TrOCR   : braid .
+  Selected: braid .
+  Confidence: 0.356
+
+Region 2:
+  EasyOCR : Answer Sheet
+  TrOCR   : Answer Sheet
+  Selected: Answer Sheet
+  Confidence: 0.952
+
+Region 3:
+  EasyOCR : S
+  TrOCR   : 25.
+  Selected: 25.
+  Confidence: 0.123
+
+Region 4:
+  EasyOCR : (cNGA
+  TrOCR   : CCISCA
+  Selected: CCISCA
+  Confidence: 0.685
+
+Region 5:
+  EasyOCR : OnJusos
+  TrOCR   : ossyces .
+  Selected: ossyces .
+  Confidence: 0.167
+
+Region 6:
+  EasyOCR : Mena Cncia
+  TrOCR   : Mema Garcia
+  Selected: Mema Garcia
+  Confidence: 0.247
+
+Region 7:
+  EasyOCR : Ston
+  TrOCR   : sirove .
+  Selected: sirove .
+  Confidence: 0.159
+
+Region 8:
+  EasyOCR : pwe Iv
+  TrOCR   : research law .
+  Selected: research law .
+  Confidence: 0.178
+
+Region 9:
+  EasyOCR : true Or FALSE 
+  TrOCR   : preunionize
+  Selected: preunionize
+  Confidence: 0.147
+
+Region 10:
+  EasyOCR : IDENOFICATION
+  TrOCR   : quantifications
+  Selected: quantifications
+  Confidence: 0.377
+
+Region 11:
+  EasyOCR : Tood
+  TrOCR   : food
+  Selected: food
+  Confidence: 0.756
+
+Region 12:
+  EasyOCR : peruting Syrten
+  TrOCR   : operating system .
+  Selected: operating system .
+  Confidence: 0.121
+
+Region 13:
+  EasyOCR : 6384Y
+  TrOCR   : essessory
+  Selected: essessory
+  Confidence: 0.227
+
+Region 14:
+  EasyOCR : T, {5 Pto)
+  TrOCR   : 7. 15pts )
+  Selected: 7. 15pts )
+  Confidence: 0.249
+
+Region 15:
+  EasyOCR : ~eft +
+  TrOCR   : soft -
+  Selected: soft -
+  Confidence: 0.299
+
+Region 16:
+  EasyOCR : hard . Joftwore
+  TrOCR   : hard-Software
+  Selected: hard-Software
+  Confidence: 0.289
+
+Region 17:
+  EasyOCR : Hardunre ir
+  TrOCR   : Hardware is
+  Selected: Hardware is
+  Confidence: 0.262
+
+Region 18:
+  EasyOCR : (4
+  TrOCR   : jis .
+  Selected: jis .
+  Confidence: 0.165
+
