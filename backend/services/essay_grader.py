@@ -1,12 +1,13 @@
 # services/essay_grader.py
-# Grades essay/open-ended answers using Groq API (LLaMA 3)
+# Phase 9 — OCR Accuracy Rework
 #
-# Evaluation criteria:
-#   1. Key points covered   — did the student mention the important concepts?
-#   2. Relevance            — is the answer actually about the question asked?
-#   3. Rubric alignment     — does it meet the teacher's grading criteria?
-#
-# Scoring: Balanced — partial credit for partially correct answers
+# Changes from Phase 8:
+#   - Prompt now receives ocr_confidence so LLaMA knows how reliable
+#     the extracted text is. Low-confidence extractions get a note
+#     telling the model to be lenient with OCR errors.
+#   - Model upgraded to llama-3.1-8b-instant (was llama3-8b-8192)
+#   - Stronger JSON enforcement in the prompt and parser
+#   - extraction_tier passed back in result for grader.py logging
 
 from groq import Groq
 import json
@@ -17,11 +18,9 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
-print("Groq essay grader loaded.")
-
-# ─── Groq Setup ───────────────────────────────────────────────────────────────
 
 _client = None
+
 
 def get_client():
     global _client
@@ -37,27 +36,17 @@ def get_client():
     return _client
 
 
-# ─── Main Essay Grader ────────────────────────────────────────────────────────
-
 def grade_essay(
     student_answer:  str,
     model_answer:    str,
     question_text:   str,
     rubric:          str,
     max_score:       float,
+    ocr_confidence:  float = 1.0,   # Phase 9: passed from grader.py
 ) -> dict:
     """
-    Sends the student's essay to Groq (LLaMA 3) for grading.
-
-    Returns:
-        {
-            "score":             float,
-            "feedback":          str,
-            "key_points_hit":    list,
-            "key_points_missed": list,
-            "relevance":         str,
-            "rubric_notes":      str,
-        }
+    Grades a student essay using Groq LLaMA 3.1.
+    Phase 9: ocr_confidence adjusts the prompt's leniency instruction.
     """
     if not student_answer or not student_answer.strip():
         return {
@@ -67,20 +56,23 @@ def grade_essay(
             "key_points_missed": [],
             "relevance":         "low",
             "rubric_notes":      "No answer provided.",
+            "extraction_tier":   "none",
         }
 
     prompt = build_prompt(
-        student_answer, model_answer, question_text, rubric, max_score
+        student_answer, model_answer, question_text,
+        rubric, max_score, ocr_confidence
     )
 
     try:
         client = get_client()
-        for attempt in range(3):  # Retry up to 3 times
+        for attempt in range(3):
             try:
                 response = client.chat.completions.create(
-                    model = "llama-3.1-8b-instant",
-                    messages = [{"role": "user", "content": prompt}],
-                    temperature = 0.3,  # Lower = more consistent grading
+                    model       = "llama-3.1-8b-instant",
+                    messages    = [{"role": "user", "content": prompt}],
+                    temperature = 0.2,   # Phase 9: lowered from 0.3 for consistency
+                    max_tokens  = 512,
                 )
                 result = parse_groq_response(
                     response.choices[0].message.content, max_score
@@ -89,7 +81,7 @@ def grade_essay(
 
             except Exception as retry_err:
                 if "429" in str(retry_err) and attempt < 2:
-                    wait = (attempt + 1) * 10  # Wait 10s, then 20s
+                    wait = (attempt + 1) * 10
                     print(f"Rate limited, retrying in {wait}s...")
                     time.sleep(wait)
                 else:
@@ -107,73 +99,94 @@ def grade_essay(
             "key_points_missed": [],
             "relevance":         "unknown",
             "rubric_notes":      "Could not grade — please try again or grade manually.",
+            "extraction_tier":   "error",
         }
 
 
-# ─── Prompt Builder ───────────────────────────────────────────────────────────
-
 def build_prompt(
-    student_answer: str,
-    model_answer:   str,
-    question_text:  str,
-    rubric:         str,
-    max_score:      float,
+    student_answer:  str,
+    model_answer:    str,
+    question_text:   str,
+    rubric:          str,
+    max_score:       float,
+    ocr_confidence:  float = 1.0,
 ) -> str:
-    rubric_section = f"Rubric / Grading Criteria:\n{rubric}" if rubric else \
-                     "No specific rubric provided — use the model answer as the standard."
+    rubric_section = (
+        f"Rubric / Grading Criteria:\n{rubric}"
+        if rubric
+        else "No specific rubric provided — use the model answer as the standard."
+    )
 
-    return f"""
-You are an expert teacher grading a student's essay answer.
-Be fair and balanced — award partial credit for partially correct answers.
-Do NOT be overly strict. If the student demonstrates understanding of the key concepts,
-even if not perfectly worded, give appropriate credit.
+    # Phase 9: OCR quality note — warn LLaMA if text extraction was uncertain
+    if ocr_confidence < 0.5:
+        ocr_note = (
+            "IMPORTANT: The student's answer was extracted via handwriting OCR "
+            f"with low confidence ({ocr_confidence:.0%}). There may be spelling "
+            "errors, missing words, or garbled characters due to OCR limitations "
+            "— not the student's fault. Grade based on the meaning and concepts "
+            "present, not exact wording. Be generous with OCR artifacts."
+        )
+    elif ocr_confidence < 0.75:
+        ocr_note = (
+            "Note: The student's answer was extracted via handwriting OCR "
+            f"(confidence: {ocr_confidence:.0%}). Minor OCR errors in spelling "
+            "or punctuation may be present — grade based on demonstrated understanding."
+        )
+    else:
+        ocr_note = (
+            "The student's answer was extracted via handwriting OCR "
+            f"(confidence: {ocr_confidence:.0%})."
+        )
+
+    return f"""You are a teacher grading a student's handwritten essay answer.
+Award partial credit fairly — a student who demonstrates understanding of key concepts
+deserves credit even if their wording differs from the model answer.
+
+{ocr_note}
 
 ===== QUESTION =====
 {question_text or "Open-ended essay question"}
 
-===== MODEL ANSWER (what a perfect answer looks like) =====
+===== MODEL ANSWER =====
 {model_answer}
 
 ===== {rubric_section} =====
 
-===== STUDENT'S ANSWER =====
+===== STUDENT ANSWER =====
 {student_answer}
 
-===== SCORING =====
+===== INSTRUCTIONS =====
 Maximum score: {max_score} points
 
-Evaluate the student's answer based on:
-1. KEY POINTS COVERED — which important concepts from the model answer did the student mention?
-2. RELEVANCE — is the answer actually addressing the question? (high/medium/low)
-3. RUBRIC ALIGNMENT — how well does it meet the grading criteria?
+Evaluate on:
+1. Key concepts covered (vs model answer)
+2. Relevance to the question
+3. Rubric alignment
 
-SCORING GUIDE (balanced):
-- Full marks ({max_score}):      Covers all key points, highly relevant, meets rubric fully
-- 75% ({max_score * 0.75:.1f}):  Covers most key points with minor gaps
-- 50% ({max_score * 0.5:.1f}):   Covers some key points, partially relevant
-- 25% ({max_score * 0.25:.1f}):  Minimal key points, mostly off-topic
-- 0:                             No relevant content or blank
+Scoring guide:
+- {max_score} pts   : Covers all key concepts, fully relevant, meets rubric
+- {max_score*0.75:.1f} pts : Covers most concepts, minor gaps
+- {max_score*0.5:.1f} pts  : Covers some concepts, partially relevant
+- {max_score*0.25:.1f} pts : Minimal concepts, mostly off-topic
+- 0 pts   : No relevant content
 
-Respond ONLY with a valid JSON object — no extra text, no markdown, no backticks:
+Respond with ONLY a raw JSON object. No markdown, no backticks, no extra text.
+The response must start with {{ and end with }}:
+
 {{
-  "score": <number between 0 and {max_score}>,
-  "feedback": "<2-3 sentences of constructive feedback for the student>",
-  "key_points_hit": ["<point 1>", "<point 2>"],
-  "key_points_missed": ["<missed point 1>", "<missed point 2>"],
+  "score": <number 0 to {max_score}>,
+  "feedback": "<2-3 sentences of constructive feedback>",
+  "key_points_hit": ["<concept 1>", "<concept 2>"],
+  "key_points_missed": ["<missed concept 1>"],
   "relevance": "<high|medium|low>",
-  "rubric_notes": "<brief note on rubric alignment>"
-}}
-""".strip()
+  "rubric_notes": "<one sentence on rubric alignment>"
+}}""".strip()
 
-
-# ─── Response Parser ──────────────────────────────────────────────────────────
 
 def parse_groq_response(response_text: str, max_score: float) -> dict:
-    """
-    Parses Groq's JSON response safely.
-    Handles cases where the model adds extra text around the JSON.
-    """
     cleaned = response_text.strip()
+
+    # Strip markdown code fences if present
     cleaned = re.sub(r'^```json\s*', '', cleaned)
     cleaned = re.sub(r'^```\s*',     '', cleaned)
     cleaned = re.sub(r'```\s*$',     '', cleaned)
@@ -182,16 +195,18 @@ def parse_groq_response(response_text: str, max_score: float) -> dict:
     try:
         data = json.loads(cleaned)
     except json.JSONDecodeError:
-        # Try to extract JSON object from response using regex
         match = re.search(r'\{.*\}', cleaned, re.DOTALL)
         if match:
-            data = json.loads(match.group())
+            try:
+                data = json.loads(match.group())
+            except json.JSONDecodeError:
+                raise ValueError(f"Could not parse Groq response: {cleaned[:200]}")
         else:
-            raise ValueError(f"Could not parse Groq response: {cleaned[:200]}")
+            raise ValueError(f"No JSON found in Groq response: {cleaned[:200]}")
 
     score = float(data.get("score", 0))
-    score = max(0.0, min(score, max_score))  # Clamp between 0 and max_score
-    score = round(score * 2) / 2             # Round to nearest 0.5
+    score = max(0.0, min(score, max_score))
+    score = round(score * 2) / 2   # Round to nearest 0.5
 
     return {
         "score":             score,
@@ -200,26 +215,20 @@ def parse_groq_response(response_text: str, max_score: float) -> dict:
         "key_points_missed": list(data.get("key_points_missed", [])),
         "relevance":         str(data.get("relevance",         "unknown")),
         "rubric_notes":      str(data.get("rubric_notes",      "")),
+        "extraction_tier":   "groq",
     }
 
 
-# ─── Batch Essay Grader ───────────────────────────────────────────────────────
-
 def grade_all_essays(essay_questions: list) -> list:
-    """
-    Grades multiple essay questions for one paper.
-    Each item in essay_questions should be a dict with:
-        question_id, student_answer, model_answer,
-        question_text, rubric, max_score
-    """
     results = []
     for q in essay_questions:
         result = grade_essay(
-            student_answer = q.get("student_answer", ""),
-            model_answer   = q.get("model_answer",   ""),
-            question_text  = q.get("question_text",  ""),
-            rubric         = q.get("rubric",         ""),
-            max_score      = q.get("max_score",      1.0),
+            student_answer  = q.get("student_answer",  ""),
+            model_answer    = q.get("model_answer",    ""),
+            question_text   = q.get("question_text",   ""),
+            rubric          = q.get("rubric",          ""),
+            max_score       = q.get("max_score",       1.0),
+            ocr_confidence  = q.get("ocr_confidence",  1.0),
         )
         results.append({
             "question_id": q["question_id"],

@@ -38,8 +38,17 @@ def process_paper(paper_id: int, db: Session = Depends(get_db)):
         if not questions:
             raise HTTPException(status_code=400, detail="This exam has no questions defined.")
 
-        # Step 3: Grade all objective questions
-        grading_results = grade_answers(full_text, questions)
+        # Step 3: Grade — Phase 9: pass image_path + region_map for essay re-crop
+        region_map_path = os.path.join(
+            "generated_sheets", f"exam_{paper.exam_id}_region_map.json"
+        )
+        grading_results = grade_answers(
+            full_text,
+            questions,
+            ocr_result      = ocr_result,
+            image_path      = paper.image_path,
+            region_map_path = region_map_path if os.path.exists(region_map_path) else None,
+        )
 
         # Step 4: Save results to database
         answers    = db.query(StudentAnswer).filter(StudentAnswer.paper_id == paper_id).all()
@@ -146,7 +155,16 @@ def run_pipeline_background(paper_id: int):
             Question.exam_id == paper.exam_id
         ).order_by(Question.question_no).all()
 
-        grading_results = grade_answers(full_text, questions)
+        region_map_path = os.path.join(
+            "generated_sheets", f"exam_{paper.exam_id}_region_map.json"
+        )
+        grading_results = grade_answers(
+            full_text,
+            questions,
+            ocr_result      = ocr_result,
+            image_path      = paper.image_path,
+            region_map_path = region_map_path if os.path.exists(region_map_path) else None,
+        )
         answer_map = {
             a.question_id: a
             for a in db.query(StudentAnswer).filter(StudentAnswer.paper_id == paper_id).all()
